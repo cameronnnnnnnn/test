@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+m1/
+*.pkl
