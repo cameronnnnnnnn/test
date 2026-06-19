@@ -1,7 +1,8 @@
 //@version=5
-// NAS100 US-session Opening-Range Breakout — FINAL (range filter + volume confirm)
-// One trade/day, 60pt stop = 1R, breakeven @1R, trail 3R behind extreme, flat by EOD.
-// Validated on 3y real NAS100 M1: expR +0.169, walk-forward +0.152/+0.194.
+// NAS100 US-session Opening-Range Breakout — FINAL (1.1% RAW preset)
+// One trade/day, 60pt stop = 1R, breakeven @1R, trail 5R behind extreme, flat by EOD.
+// Validated on 3y real NAS100 M1: expR +0.16, PF 1.33 (live MT5 PF 1.24).
+// Monte Carlo (EOD trailing DD, +10% goal): ~61% pass, ~39% blow, ~6.5 wk avg to pass.
 // Use on an intraday chart (1m best; 5m ok). Strategy Tester shows the equity curve.
 strategy("NAS100 ORB (FTMO final)", overlay=true, initial_capital=15000,
          currency=currency.USD, pyramiding=0, process_orders_on_close=true,
@@ -18,8 +19,8 @@ noFriday  = input.bool(true, "No Friday entries", group=grpS)
 grpR = "Risk & exits"
 stopPts  = input.float(60.0, "Stop distance (points) = 1R", group=grpR)
 beR      = input.float(1.0, "Breakeven at +R (0=off)", group=grpR)
-trailR   = input.float(3.0, "Trail R behind extreme (0=off)", group=grpR)
-riskPct  = input.float(0.75, "Risk % of equity per trade (FTMO preset)", group=grpR)
+trailR   = input.float(5.0, "Trail R behind extreme (0=off)", group=grpR)
+riskPct  = input.float(1.10, "Risk % of equity per trade (1.1% RAW preset)", group=grpR)
 
 grpF = "Edge filters"
 useRangeFilter = input.bool(true, "Range filter (skip dead/exploded days)", group=grpF)

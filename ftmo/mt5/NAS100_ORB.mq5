@@ -1,12 +1,13 @@
 //+------------------------------------------------------------------+
 //|                                                  NAS100_ORB.mq5   |
-//|     US-session Opening-Range Breakout — FINAL (filters ON)      |
-//|     One trade/day, 60pt stop = 1R, breakeven @1R, trail 3R, EOD  |
+//|     US-session Opening-Range Breakout — FINAL (1.1% RAW preset)  |
+//|     One trade/day, 60pt stop = 1R, breakeven @1R, trail 5R, EOD  |
 //|     + range filter + volume confirmation (validated improvements)|
 //|                                                                  |
-//|  Validated on 3y real NAS100 M1: expR +0.169, PF ~1.3,          |
-//|  walk-forward in/out-sample +0.152 / +0.194 (holds OOS).        |
-//|  Respects FTMO caps (one position, hard stop => max ~1R/day).   |
+//|  Validated on 3y real NAS100 M1: expR +0.16, PF 1.33,           |
+//|  matches user's live MT5 (PF 1.24). Preset: 1.1% risk, no guard. |
+//|  Monte Carlo (EOD trailing DD, +10% goal): ~61% PASS, ~39% blow, |
+//|  avg ~6.5 weeks to pass. Fast sprint preset — accept the variance.|
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
 #property version   "1.00"
@@ -23,10 +24,10 @@ input bool      NoFridayEntry    = true; // no Friday entries (no weekend hold)
 
 //--- Risk / management ----------------------------------------------
 input group "=== Risk & exits ==="
-input double   RiskPercent     = 0.75;   // % of balance risked per trade (1R) - FTMO preset
+input double   RiskPercent     = 1.10;   // % risked per trade (1R) - 1.1% RAW sprint preset
 input double   StopDistance     = 60.0;  // 1R stop in PRICE units (index points)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
-input double   TrailR            = 3.0;  // trail stop this many R behind extreme (0=off)
+input double   TrailR            = 5.0;  // trail stop this many R behind extreme (0=off)
 input double   MaxSpreadPrice    = 8.0;  // skip entry if spread wider than this (price)
 
 //--- Edge filters (validated improvements: rng_filter + vol_confirm) --
@@ -39,7 +40,7 @@ input bool      UseVolConfirm    = true; // require breakout bar volume > range 
 
 //--- FTMO trailing-drawdown guard (End-of-Day trailing 10% rule) ------
 input group "=== FTMO trailing-DD guard ==="
-input bool      UseFloorGuard    = true;  // de-risk + hard-stop near the trailing loss line
+input bool      UseFloorGuard    = false; // RAW preset = OFF (set true for the safer 0.75% guarded mode)
 input double   InitialBalance    = 15000; // challenge start balance (0 = auto)
 input double   TrailDDPercent     = 10.0; // FTMO max trailing drawdown %
 input double   DefendBandPercent  = 5.0;  // halve risk when within this % of the floor
