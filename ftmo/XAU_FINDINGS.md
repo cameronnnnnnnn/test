@@ -42,7 +42,42 @@ better edge **if** validated properly. To do that I need:
 With that, gold is the most promising instrument tested. With only 7 bull-run
 months, it cannot be trusted.
 
-## Bottom line
+## Bottom line (7-month sample)
 More range/spread does not help if the sample can't prove the edge is real.
 Gold = best raw material, worst sample. Get longer history and it goes back on the
 table; until then, **NAS100 ORB is the strategy.**
+
+---
+
+# UPDATE — 22-YEAR DATA TESTED (2004-2026). Definitive: gold has NO robust edge.
+
+You sent 20 years of M1 (6.79M bars, 2004-2026) covering every regime: bull
+(2004-11, 2016-20, 2023-26), **bear (2013 −28%, 2015 −11%)**, range (2008, 2012,
+2014, 2018, 2021, 2022). This is the proper multi-regime sample. Verdict is now
+final and it is a clean **no**.
+
+## Every principled edge, tested across all 22 years
+| Strategy | Result (22y) | Per-era walk-forward | Verdict |
+|---|---|---|---|
+| Intraday breakout (ORB), **every hour 01-21h** | **−0.02 to −0.35R** | negative everywhere | dead |
+| Intraday fade (inverse of breakout) | −0.03 to −0.07R | negative every era + hour | dead |
+| Daily trend-pullback (worked on FX/NAS) | +0.006R | flips sign by era (−0.02/+0.03/−0.02/+0.05/−0.02) | no edge |
+| Daily mean-reversion (fade z-score) | −0.046R | negative every era | dead |
+
+## The proof the 7-month result was noise
+The "magic" 13h ORB that showed **+0.206R on 7 months is −0.200R on 22 years** — a
+complete sign flip. Exactly the overfitting the short-sample tests predicted.
+
+## Why gold fails despite the best range/spread
+Gold's intraday moves are **efficient** — neither momentum (breakout) nor reversion
+(fade) persists after cost. Both directions lose. The 185:1 range/spread ratio is
+real but there is no exploitable structure for it to amplify. Big range ≠ edge.
+By contrast NAS100 ORB held +0.131R in-sample / +0.124R out-of-sample with both
+sides positive — a genuinely different, structural edge.
+
+## Final decision
+- **Gold is out.** Tested exhaustively on 22 years of real multi-regime data; no
+  principled strategy survives. Mining further would be curve-fitting.
+- **NAS100 ORB remains the single validated strategy.** (See NAS100_FINDINGS.md.)
+- The honest, hard truth confirmed twice over: the constraint is a thin/absent edge,
+  not the instrument. Gold's superior raw material did not rescue it.

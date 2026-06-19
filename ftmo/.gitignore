@@ -4,3 +4,8 @@ m1/
 *.pkl
 m1_nas/*.csv
 m1_nas/*.zip
+xau_full/*.tsv
+xau_full/**/*.tsv
+xau_full/*.txt
+xau_full/**/*.txt
+m1_nas/*.csv
