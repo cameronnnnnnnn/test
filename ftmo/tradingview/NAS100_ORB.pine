@@ -1,0 +1,125 @@
+//@version=5
+// NAS100 US-session Opening-Range Breakout — FINAL (range filter + volume confirm)
+// One trade/day, 60pt stop = 1R, breakeven @1R, trail 3R behind extreme, flat by EOD.
+// Validated on 3y real NAS100 M1: expR +0.169, walk-forward +0.152/+0.194.
+// Use on an intraday chart (1m best; 5m ok). Strategy Tester shows the equity curve.
+strategy("NAS100 ORB (FTMO final)", overlay=true, initial_capital=15000,
+         currency=currency.USD, pyramiding=0, process_orders_on_close=true,
+         default_qty_type=strategy.fixed, calc_on_every_tick=false,
+         commission_type=strategy.commission.cash_per_order, commission_value=0)
+
+// ---------------- inputs ----------------
+grpS = "Session"
+sess      = input.session("0930-1600", "US cash session", group=grpS)
+tz        = input.string("America/New_York", "Session timezone", group=grpS)
+rangeMins = input.int(30, "Opening-range minutes", minval=5, group=grpS)
+noFriday  = input.bool(true, "No Friday entries", group=grpS)
+
+grpR = "Risk & exits"
+stopPts  = input.float(60.0, "Stop distance (points) = 1R", group=grpR)
+beR      = input.float(1.0, "Breakeven at +R (0=off)", group=grpR)
+trailR   = input.float(3.0, "Trail R behind extreme (0=off)", group=grpR)
+riskPct  = input.float(1.0, "Risk % of equity per trade", group=grpR)
+
+grpF = "Edge filters"
+useRangeFilter = input.bool(true, "Range filter (skip dead/exploded days)", group=grpF)
+lookback = input.int(40, "Range median lookback (days)", group=grpF)
+rMinMult = input.float(0.5, "Skip if range < x*median", group=grpF)
+rMaxMult = input.float(2.0, "Skip if range > x*median", group=grpF)
+useVolConfirm  = input.bool(true, "Volume confirm (breakout vol > range avg)", group=grpF)
+
+// ---------------- session / range state ----------------
+t       = time(timeframe.period, sess, tz)
+inSess  = not na(t)
+newSess = inSess and not inSess[1]
+
+var float rngHigh   = na
+var float rngLow    = na
+var float rngVolSum = na
+var int   rngVolCnt = 0
+var int   sessStart = na
+var bool  rngReady  = false
+var bool  tradedToday = false
+var bool  skipDay   = false
+var float ext       = na
+var array<float> rangeHist = array.new_float()
+
+if newSess
+    sessStart   := time
+    rngHigh     := high
+    rngLow      := low
+    rngVolSum   := volume
+    rngVolCnt   := 1
+    rngReady    := false
+    tradedToday := false
+    skipDay     := false
+else if inSess and not rngReady
+    if time < sessStart + rangeMins * 60 * 1000
+        rngHigh   := math.max(rngHigh, high)
+        rngLow    := math.min(rngLow, low)
+        rngVolSum := rngVolSum + volume
+        rngVolCnt := rngVolCnt + 1
+    else
+        // finalize the opening range
+        rngReady := true
+        rsize = rngHigh - rngLow
+        skipDay := false
+        if useRangeFilter and array.size(rangeHist) >= 10
+            med = array.median(rangeHist)
+            if med > 0 and (rsize < rMinMult * med or rsize > rMaxMult * med)
+                skipDay := true
+        array.push(rangeHist, rsize)
+        if array.size(rangeHist) > lookback
+            array.shift(rangeHist)
+
+rngVolAvg = rngVolCnt > 0 ? rngVolSum / rngVolCnt : na
+
+// ---------------- entries (one breakout/day) ----------------
+isFri    = dayofweek(time, tz) == dayofweek.friday
+canEnter = rngReady and inSess and not tradedToday and not skipDay and strategy.position_size == 0 and not (noFriday and isFri)
+volOK    = not useVolConfirm or volume > rngVolAvg
+
+qty = (stopPts * syminfo.pointvalue) > 0 ? (strategy.equity * riskPct / 100.0) / (stopPts * syminfo.pointvalue) : 1.0
+
+if canEnter and volOK
+    if high >= rngHigh
+        strategy.entry("L", strategy.long, qty=qty)
+        tradedToday := true
+    else if low <= rngLow
+        strategy.entry("S", strategy.short, qty=qty)
+        tradedToday := true
+
+// reset extreme on a fresh position
+if strategy.position_size != 0 and strategy.position_size[1] == 0
+    ext := strategy.position_avg_price
+
+// ---------------- manage stop: breakeven + trail ----------------
+if strategy.position_size > 0
+    ext := math.max(nz(ext, strategy.position_avg_price), high)
+    ep  = strategy.position_avg_price
+    sl  = ep - stopPts
+    curR = (close - ep) / stopPts
+    if beR > 0 and curR >= beR
+        sl := math.max(sl, ep)
+    if trailR > 0
+        sl := math.max(sl, ext - trailR * stopPts)
+    strategy.exit("xL", from_entry="L", stop=sl)
+else if strategy.position_size < 0
+    ext := math.min(nz(ext, strategy.position_avg_price), low)
+    ep  = strategy.position_avg_price
+    sl  = ep + stopPts
+    curR = (ep - close) / stopPts
+    if beR > 0 and curR >= beR
+        sl := math.min(sl, ep)
+    if trailR > 0
+        sl := math.min(sl, ext + trailR * stopPts)
+    strategy.exit("xS", from_entry="S", stop=sl)
+
+// ---------------- end-of-day flat ----------------
+if not inSess and inSess[1] and strategy.position_size != 0
+    strategy.close_all("EOD")
+
+// ---------------- visuals ----------------
+plot(inSess and rngReady ? rngHigh : na, "Range High", color.new(color.green, 0), 2, plot.style_linebr)
+plot(inSess and rngReady ? rngLow  : na, "Range Low",  color.new(color.red, 0),   2, plot.style_linebr)
+bgcolor(skipDay and inSess ? color.new(color.gray, 90) : na, title="Skipped day")

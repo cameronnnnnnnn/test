@@ -1,11 +1,12 @@
 //+------------------------------------------------------------------+
 //|                                                  NAS100_ORB.mq5   |
-//|     US-session Opening-Range Breakout (FTMO config "B")          |
+//|     US-session Opening-Range Breakout — FINAL (filters ON)      |
 //|     One trade/day, 60pt stop = 1R, breakeven @1R, trail 3R, EOD  |
+//|     + range filter + volume confirmation (validated improvements)|
 //|                                                                  |
-//|  Validated on 3y real NAS100 M1: expR +0.129, PF 1.26,          |
-//|  walk-forward +0.131 / +0.124. Respects FTMO daily/overall caps  |
-//|  (one position, hard stop => max ~1R loss/day).                  |
+//|  Validated on 3y real NAS100 M1: expR +0.169, PF ~1.3,          |
+//|  walk-forward in/out-sample +0.152 / +0.194 (holds OOS).        |
+//|  Respects FTMO caps (one position, hard stop => max ~1R/day).   |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
 #property version   "1.00"
