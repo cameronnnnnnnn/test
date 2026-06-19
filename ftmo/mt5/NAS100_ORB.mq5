@@ -37,6 +37,15 @@ input double   RangeMinMult      = 0.5;  // skip if range < this x median
 input double   RangeMaxMult      = 2.0;  // skip if range > this x median
 input bool      UseVolConfirm    = true; // require breakout bar volume > range avg
 
+//--- FTMO trailing-drawdown guard (End-of-Day trailing 10% rule) ------
+input group "=== FTMO trailing-DD guard ==="
+input bool      UseFloorGuard    = true;  // de-risk + hard-stop near the trailing loss line
+input double   InitialBalance    = 15000; // challenge start balance (0 = auto)
+input double   TrailDDPercent     = 10.0; // FTMO max trailing drawdown %
+input double   DefendBandPercent  = 5.0;  // halve risk when within this % of the floor
+input double   DefendFactor        = 0.5; // risk multiplier inside the defend band
+input double   HardStopBufferPct   = 1.0; // stop new trades within this % of the floor
+
 //--- Misc ------------------------------------------------------------
 input group "=== Misc ==="
 input ulong    MagicNumber      = 7700160;
@@ -53,12 +62,14 @@ bool     g_skipDay    = false;   // range filter said skip today
 double   g_rangeVolAvg= 0.0;     // avg tick-vol of the opening-range bars
 double   g_recentRng[];          // rolling history of opening-range sizes
 int      g_recentN    = 0;
+double   g_peakBalance= 0.0;      // running peak balance (for the EOD trailing floor)
 
 //+------------------------------------------------------------------+
 int OnInit()
 {
    trade.SetExpertMagicNumber(MagicNumber);
    trade.SetTypeFillingBySymbol(_Symbol);
+   g_peakBalance = AccountInfoDouble(ACCOUNT_BALANCE);
    PrintFormat("NAS100_ORB started on %s  open=%02d:%02d +%dm  stop=%.1f  risk=%.2f%%",
                _Symbol, SessionOpenHour, SessionOpenMin, RangeMinutes, StopDistance, RiskPercent);
    return(INIT_SUCCEEDED);
@@ -140,10 +151,10 @@ bool HasPosition()
    return false;
 }
 
-double LotsForRisk()
+double LotsForRisk(double effRiskPct)
 {
    double bal     = AccountInfoDouble(ACCOUNT_BALANCE);
-   double riskMon = bal * RiskPercent/100.0;
+   double riskMon = bal * effRiskPct/100.0;
    double tickVal = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);
    double tickSz  = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE);
    if(tickSz<=0 || tickVal<=0) return 0.0;
@@ -236,7 +247,22 @@ void OnTick()
       }
    }
 
-   double lots = LotsForRisk();
+   //--- FTMO trailing-DD guard: track peak balance, defend / hard-stop near the floor
+   double effRisk = RiskPercent;
+   if(UseFloorGuard){
+      double bal = AccountInfoDouble(ACCOUNT_BALANCE);
+      if(bal > g_peakBalance) g_peakBalance = bal;
+      double initBal = (InitialBalance>0) ? InitialBalance : g_peakBalance;
+      double floor   = g_peakBalance - (TrailDDPercent/100.0)*initBal;
+      double eqt     = AccountInfoDouble(ACCOUNT_EQUITY);
+      // hard stop: too close to (or below) the trailing loss line -> no new trades
+      if(eqt <= floor + (HardStopBufferPct/100.0)*initBal) return;
+      // floor defense: within the band -> cut risk
+      if(eqt > floor && (eqt-floor)/eqt < DefendBandPercent/100.0)
+         effRisk = RiskPercent*DefendFactor;
+   }
+
+   double lots = LotsForRisk(effRisk);
    if(lots<=0) return;
 
    if(ask >= g_rangeHigh){                  // upside breakout -> long
