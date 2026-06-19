@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 m1/
 *.pkl
+m1_nas/*.csv
+m1_nas/*.zip
