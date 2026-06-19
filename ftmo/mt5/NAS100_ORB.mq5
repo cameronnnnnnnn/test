@@ -23,7 +23,7 @@ input bool      NoFridayEntry    = true; // no Friday entries (no weekend hold)
 
 //--- Risk / management ----------------------------------------------
 input group "=== Risk & exits ==="
-input double   RiskPercent     = 1.0;    // % of balance risked per trade (1R)
+input double   RiskPercent     = 0.75;   // % of balance risked per trade (1R) - FTMO preset
 input double   StopDistance     = 60.0;  // 1R stop in PRICE units (index points)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
 input double   TrailR            = 3.0;  // trail stop this many R behind extreme (0=off)

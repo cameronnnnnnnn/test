@@ -19,7 +19,7 @@ grpR = "Risk & exits"
 stopPts  = input.float(60.0, "Stop distance (points) = 1R", group=grpR)
 beR      = input.float(1.0, "Breakeven at +R (0=off)", group=grpR)
 trailR   = input.float(3.0, "Trail R behind extreme (0=off)", group=grpR)
-riskPct  = input.float(1.0, "Risk % of equity per trade", group=grpR)
+riskPct  = input.float(0.75, "Risk % of equity per trade (FTMO preset)", group=grpR)
 
 grpF = "Edge filters"
 useRangeFilter = input.bool(true, "Range filter (skip dead/exploded days)", group=grpF)
