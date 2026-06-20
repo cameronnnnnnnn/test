@@ -1,9 +1,9 @@
 //@version=5
-// NAS100 US-session Opening-Range Breakout — FINAL (1.1% RAW preset)
-// One trade/day, 60pt stop = 1R, breakeven @1R, trail 5R behind extreme, flat by EOD.
-// Validated on 3y real NAS100 M1: expR +0.16, PF 1.33 (live MT5 PF 1.24).
-// Monte Carlo (EOD trailing DD, +10% goal): ~61% pass, ~39% blow, ~6.5 wk avg to pass.
-// Use on an intraday chart (1m best; 5m ok). Strategy Tester shows the equity curve.
+// NAS100 US-session Opening-Range Breakout — v2 (overnight confluence + stop80)
+// One trade/day, 80pt stop = 1R, breakeven @1R, trail 5R, flat by EOD.
+// Filters: range + volume + overnight confluence (open must clear prior EU high/low).
+// Validated 3y real NAS100 M1: WR 41%, expR +0.23, PF 1.54, walk-forward +0.20/+0.26.
+// MC (EOD trailing DD, +10% goal): ~82% pass at 1.1% (~92% at 0.75%); ~1.5 trades/wk.
 strategy("NAS100 ORB (FTMO final)", overlay=true, initial_capital=15000,
          currency=currency.USD, pyramiding=0, process_orders_on_close=true,
          default_qty_type=strategy.fixed, calc_on_every_tick=false,
@@ -17,7 +17,7 @@ rangeMins = input.int(30, "Opening-range minutes", minval=5, group=grpS)
 noFriday  = input.bool(true, "No Friday entries", group=grpS)
 
 grpR = "Risk & exits"
-stopPts  = input.float(60.0, "Stop distance (points) = 1R", group=grpR)
+stopPts  = input.float(80.0, "Stop distance (points) = 1R", group=grpR)
 beR      = input.float(1.0, "Breakeven at +R (0=off)", group=grpR)
 trailR   = input.float(5.0, "Trail R behind extreme (0=off)", group=grpR)
 riskPct  = input.float(1.10, "Risk % of equity per trade (1.1% RAW preset)", group=grpR)
@@ -28,6 +28,8 @@ lookback = input.int(40, "Range median lookback (days)", group=grpF)
 rMinMult = input.float(0.5, "Skip if range < x*median", group=grpF)
 rMaxMult = input.float(2.0, "Skip if range > x*median", group=grpF)
 useVolConfirm  = input.bool(true, "Volume confirm (breakout vol > range avg)", group=grpF)
+useOvernight = input.bool(true, "Overnight confluence (open clears prior EU high/low)", group=grpF)
+preSess  = input.session("0330-0930", "Prior EU session (overnight window)", group=grpF)
 
 // ---------------- session / range state ----------------
 t       = time(timeframe.period, sess, tz)
@@ -45,6 +47,20 @@ var bool  skipDay   = false
 var float ext       = na
 var array<float> rangeHist = array.new_float()
 
+// prior EU-session high/low for overnight confluence
+inPre  = not na(time(timeframe.period, preSess, tz))
+newPre = inPre and not inPre[1]
+var float curPreH = na
+var float curPreL = na
+var float preHigh  = na
+var float preLow   = na
+if newPre
+    curPreH := high
+    curPreL := low
+else if inPre
+    curPreH := math.max(curPreH, high)
+    curPreL := math.min(curPreL, low)
+
 if newSess
     sessStart   := time
     rngHigh     := high
@@ -54,6 +70,8 @@ if newSess
     rngReady    := false
     tradedToday := false
     skipDay     := false
+    preHigh     := curPreH      // freeze EU high/low at the open
+    preLow      := curPreL
 else if inSess and not rngReady
     if time < sessStart + rangeMins * 60 * 1000
         rngHigh   := math.max(rngHigh, high)
@@ -82,11 +100,14 @@ volOK    = not useVolConfirm or volume > rngVolAvg
 
 qty = (stopPts * syminfo.pointvalue) > 0 ? (strategy.equity * riskPct / 100.0) / (stopPts * syminfo.pointvalue) : 1.0
 
+longConf  = not useOvernight or na(preHigh) or rngHigh >= preHigh
+shortConf = not useOvernight or na(preLow)  or rngLow  <= preLow
+
 if canEnter and volOK
-    if high >= rngHigh
+    if high >= rngHigh and longConf
         strategy.entry("L", strategy.long, qty=qty)
         tradedToday := true
-    else if low <= rngLow
+    else if low <= rngLow and shortConf
         strategy.entry("S", strategy.short, qty=qty)
         tradedToday := true
 

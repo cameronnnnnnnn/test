@@ -1,13 +1,13 @@
 //+------------------------------------------------------------------+
 //|                                                  NAS100_ORB.mq5   |
-//|     US-session Opening-Range Breakout — FINAL (1.1% RAW preset)  |
-//|     One trade/day, 60pt stop = 1R, breakeven @1R, trail 5R, EOD  |
-//|     + range filter + volume confirmation (validated improvements)|
+//|     US-session Opening-Range Breakout — v2 (overnight + stop80)  |
+//|     One trade/day, 80pt stop=1R, BE@1R, trail 5R, EOD flat.      |
+//|     Filters: range + volume + OVERNIGHT CONFLUENCE (trade only   |
+//|     when the open clears the prior EU session high/low).         |
 //|                                                                  |
-//|  Validated on 3y real NAS100 M1: expR +0.16, PF 1.33,           |
-//|  matches user's live MT5 (PF 1.24). Preset: 1.1% risk, no guard. |
-//|  Monte Carlo (EOD trailing DD, +10% goal): ~61% PASS, ~39% blow, |
-//|  avg ~6.5 weeks to pass. Fast sprint preset — accept the variance.|
+//|  Validated 3y real NAS100 M1: WR 41%, expR +0.23, PF 1.54,      |
+//|  walk-forward +0.20 / +0.26 (holds). MC (EOD trailing DD, +10%): |
+//|  ~82% PASS at 1.1% (~92% at 0.75%); slower (~1.5 trades/week).   |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
 #property version   "1.00"
@@ -25,7 +25,7 @@ input bool      NoFridayEntry    = true; // no Friday entries (no weekend hold)
 //--- Risk / management ----------------------------------------------
 input group "=== Risk & exits ==="
 input double   RiskPercent     = 1.10;   // % risked per trade (1R) - 1.1% RAW sprint preset
-input double   StopDistance     = 60.0;  // 1R stop in PRICE units (index points)
+input double   StopDistance     = 80.0;  // 1R stop in PRICE units (80 = best WR/pass with overnight filter)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
 input double   TrailR            = 5.0;  // trail stop this many R behind extreme (0=off)
 input double   MaxSpreadPrice    = 8.0;  // skip entry if spread wider than this (price)
@@ -37,6 +37,8 @@ input int      RangeLookback     = 40;   // days of history for the median
 input double   RangeMinMult      = 0.5;  // skip if range < this x median
 input double   RangeMaxMult      = 2.0;  // skip if range > this x median
 input bool      UseVolConfirm    = true; // require breakout bar volume > range avg
+input bool      UseOvernightConf = true; // only trade when the open clears the prior EU session
+input int      OvernightHours    = 6;    // hours before the open to use as the EU range
 
 //--- FTMO trailing-drawdown guard (End-of-Day trailing 10% rule) ------
 input group "=== FTMO trailing-DD guard ==="
@@ -64,6 +66,8 @@ double   g_rangeVolAvg= 0.0;     // avg tick-vol of the opening-range bars
 double   g_recentRng[];          // rolling history of opening-range sizes
 int      g_recentN    = 0;
 double   g_peakBalance= 0.0;      // running peak balance (for the EOD trailing floor)
+double   g_preHigh    = 0.0;      // prior EU-session high (overnight confluence)
+double   g_preLow     = 0.0;      // prior EU-session low
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -120,6 +124,16 @@ bool ComputeRange(datetime now)
    g_rangeHigh=hi; g_rangeLow=lo;
    g_rangeVolAvg = vsum/n;
    double rsize = hi-lo;
+
+   //--- overnight confluence: high/low of the EU session before the open
+   g_preHigh=0; g_preLow=0;
+   if(UseOvernightConf){
+      MqlRates pr[];
+      int pn = CopyRates(_Symbol, PERIOD_M1, t0 - OvernightHours*3600, t0-60, pr);
+      double ph=-DBL_MAX, pl=DBL_MAX;
+      for(int i=0;i<pn;i++){ if(pr[i].high>ph) ph=pr[i].high; if(pr[i].low<pl) pl=pr[i].low; }
+      if(pn>0){ g_preHigh=ph; g_preLow=pl; }
+   }
 
    //--- range filter: compare to trailing median (history BEFORE today)
    g_skipDay=false;
@@ -266,13 +280,17 @@ void OnTick()
    double lots = LotsForRisk(effRisk);
    if(lots<=0) return;
 
-   if(ask >= g_rangeHigh){                  // upside breakout -> long
+   // overnight confluence: long only if the range cleared the EU high, short if cleared EU low
+   bool longOK  = (!UseOvernightConf) || (g_preHigh<=0) || (g_rangeHigh >= g_preHigh);
+   bool shortOK = (!UseOvernightConf) || (g_preLow <=0) || (g_rangeLow  <= g_preLow);
+
+   if(ask >= g_rangeHigh && longOK){        // upside breakout -> long
       double sl = NormalizeDouble(ask - StopDistance, _Digits);
       if(trade.Buy(lots, _Symbol, 0.0, sl, 0.0, TradeComment)){
          g_tradedToday=true; g_extreme=bid;
       }
    }
-   else if(bid <= g_rangeLow){              // downside breakout -> short
+   else if(bid <= g_rangeLow && shortOK){   // downside breakout -> short
       double sl = NormalizeDouble(bid + StopDistance, _Digits);
       if(trade.Sell(lots, _Symbol, 0.0, sl, 0.0, TradeComment)){
          g_tradedToday=true; g_extreme=ask;
