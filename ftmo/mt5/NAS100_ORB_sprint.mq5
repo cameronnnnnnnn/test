@@ -19,6 +19,7 @@ input string   SessionHours    = "15,16"; // comma-separated server open hours
 input int      RangeMinutes     = 30;     // opening-range length (min)
 input int      EODHour          = 23;     // flatten/no-new-trades after this hour
 input bool      NoFridayEntry    = true;  // no Friday entries
+input bool      AllowOpposing    = false; // false = never hold a long and short at the same time
 
 input group "=== Risk & exits (sprint preset) ==="
 input double   RiskPercent     = 1.25;   // % risked per trade (1R)
@@ -97,6 +98,24 @@ bool ComputeRange(int i, datetime now)
    return true;
 }
 
+// is there an open position (from this EA) in the OPPOSITE direction to wantDir?
+bool OpposingOpen(int wantDir)
+{
+   for(int i=PositionsTotal()-1;i>=0;i--){
+      ulong tk=PositionGetTicket(i);
+      if(!PositionSelectByTicket(tk)) continue;
+      if(PositionGetString(POSITION_SYMBOL)!=_Symbol) continue;
+      ulong mg=(ulong)PositionGetInteger(POSITION_MAGIC);
+      bool ours=false;
+      for(int s=0;s<g_nSess;s++) if(mg==MagicBase+g_hours[s]) ours=true;
+      if(!ours) continue;
+      long tp=PositionGetInteger(POSITION_TYPE);
+      if(wantDir>0 && tp==POSITION_TYPE_SELL) return true;
+      if(wantDir<0 && tp==POSITION_TYPE_BUY)  return true;
+   }
+   return false;
+}
+
 bool SelPos(ulong magic, ulong &ticket)
 {
    for(int i=PositionsTotal()-1;i>=0;i--){
@@ -172,10 +191,10 @@ void OnTick()
       if(UseVolConfirm && (double)lastVol<=g_rVolAvg[i]) continue;
       double lots=LotsForRisk(); if(lots<=0) continue;
       trade.SetExpertMagicNumber(magic);
-      if(ask>=g_rHigh[i]){
+      if(ask>=g_rHigh[i] && (AllowOpposing || !OpposingOpen(+1))){
          double sl=NormalizeDouble(ask-StopDistance,_Digits);
          if(trade.Buy(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=bid; }
-      } else if(bid<=g_rLow[i]){
+      } else if(bid<=g_rLow[i] && (AllowOpposing || !OpposingOpen(-1))){
          double sl=NormalizeDouble(bid+StopDistance,_Digits);
          if(trade.Sell(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=ask; }
       }
