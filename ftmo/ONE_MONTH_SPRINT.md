@@ -25,16 +25,29 @@ lets you use LOWER risk to still reach +10% fast — keeping blow-ups flatter:
 honest best. The floor guard lowers the 1-month pass (de-risking = slower), so for a
 sprint you run it OFF.
 
-## Recommended 1-MONTH SPRINT preset
-**Multi-session US ORB, no overnight filter (it kills frequency), stop 80, r=1.25%, guard OFF.**
-- ~45% pass within 1 month, ~12% more pass in ~6 weeks, ~43% blow, WR ~31%.
-- How to run it in MT5: **run TWO copies of the EA** on the NAS100 chart, identical
-  except:
-  - Copy A: `SessionOpenHour = 15`, `MagicNumber = 7700015`
-  - Copy B: `SessionOpenHour = 16`, `MagicNumber = 7700016`
-  - Both: `UseOvernightConf = false`, `StopDistance = 80`, `RiskPercent = 1.25`,
-    `UseFloorGuard = false`, filters ON.
-  - (Two instances = up to 2 trades/day = 2.5% worst-case daily, under the 3% cap.)
+## Recommended 1-MONTH SPRINT preset — definitive MC (r=1.25%)
+**Multi-session US ORB (15h+16h), no overnight filter, stop 80, r=1.25%, guard OFF.**
+Pooled edge: WR 31%, expR +0.125, PF 1.26, maxR 10.6.
+| Outcome | r=1.0% | **r=1.25%** | r=1.5% |
+|---|---|---|---|
+| **PASS within 1 month** | 36% | **44%** | 47% |
+| PASS after 1 month | 26% (~1.7mo) | 12% (~1.5mo) | 6% (~1.4mo) |
+| **BLOW (10% trailing DD)** | 38% | **44%** | 47% |
+| Total pass (any time) | 62% | 56% | 53% |
+| Median time to pass | 18td | 13td | 10td |
+
+## How to run it
+**MT5 (easiest): `NAS100_ORB_sprint.mq5`** — one EA that trades BOTH the 15h and 16h
+opens. Inputs are preset to the sprint (SessionHours="15,16", stop80, risk1.25, filters
+ON, no overnight, no guard). **Requires a hedging account** (FTMO MT5 is hedging) since
+two positions can be open at once. Check `SessionHours` matches your broker's server
+hours for the US session, and backtest in the Strategy Tester first.
+
+**Pine:** add `NAS100_ORB.pine` to the chart **twice**, set `useOvernight=false`,
+`stopPts=80`, `riskPct=1.25`, and the two session opens (e.g. `0830-1600` and
+`0930-1600` America/New_York). TradingView shows each instance's equity separately
+(it cannot combine two concurrent strategies into one curve — use the MT5 sprint EA for
+the true combined backtest).
 
 ## The choice you are actually making
 | Goal | Config | Pass | Blow | Time |
