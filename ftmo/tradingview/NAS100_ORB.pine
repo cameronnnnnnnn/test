@@ -1,10 +1,13 @@
 //@version=5
-// NAS100 US-session Opening-Range Breakout — v2 (overnight confluence + stop80)
-// One trade/day, 80pt stop = 1R, breakeven @1R, trail 5R, flat by EOD.
-// Filters: range + volume + overnight confluence (open must clear prior EU high/low).
-// Validated 3y real NAS100 M1: WR 41%, expR +0.23, PF 1.54, walk-forward +0.20/+0.26.
-// MC (EOD trailing DD, +10% goal): ~82% pass at 1.1% (~92% at 0.75%); ~1.5 trades/wk.
-strategy("NAS100 ORB (FTMO final)", overlay=true, initial_capital=15000,
+// NAS100 US-session Opening-Range Breakout — SPRINT preset (matches your MT5 backtest)
+// 80pt stop = 1R, breakeven @1R, trail 5R, flat by EOD, range+volume filters,
+// NO overnight filter, NoFriday=ON, risk 1.25%.
+// NOTE: your MT5 sprint runs TWO sessions (15h+16h) as two hedged positions. Pine is a
+// NETTING engine and cannot hold a long+short at once, so this script shows ONE session
+// (the 09:30 NY cash open = your "16h" server session — the stronger of the two).
+// For the second session, add this script again with session "0830-1600". The MT5 EA
+// (NAS100_ORB_sprint.mq5) remains the source of truth for the combined 15h+16h result.
+strategy("NAS100 ORB (FTMO sprint)", overlay=true, initial_capital=15000,
          currency=currency.USD, pyramiding=0, process_orders_on_close=true,
          default_qty_type=strategy.fixed, calc_on_every_tick=false,
          commission_type=strategy.commission.cash_per_order, commission_value=0)
@@ -20,7 +23,7 @@ grpR = "Risk & exits"
 stopPts  = input.float(80.0, "Stop distance (points) = 1R", group=grpR)
 beR      = input.float(1.0, "Breakeven at +R (0=off)", group=grpR)
 trailR   = input.float(5.0, "Trail R behind extreme (0=off)", group=grpR)
-riskPct  = input.float(1.10, "Risk % of equity per trade (1.1% RAW preset)", group=grpR)
+riskPct  = input.float(1.25, "Risk % of equity per trade (sprint preset)", group=grpR)
 
 grpF = "Edge filters"
 useRangeFilter = input.bool(true, "Range filter (skip dead/exploded days)", group=grpF)
@@ -28,7 +31,7 @@ lookback = input.int(40, "Range median lookback (days)", group=grpF)
 rMinMult = input.float(0.5, "Skip if range < x*median", group=grpF)
 rMaxMult = input.float(2.0, "Skip if range > x*median", group=grpF)
 useVolConfirm  = input.bool(true, "Volume confirm (breakout vol > range avg)", group=grpF)
-useOvernight = input.bool(true, "Overnight confluence (open clears prior EU high/low)", group=grpF)
+useOvernight = input.bool(false, "Overnight confluence (OFF for sprint; ON = higher PF, slower)", group=grpF)
 preSess  = input.session("0330-0930", "Prior EU session (overnight window)", group=grpF)
 
 // ---------------- session / range state ----------------
