@@ -20,6 +20,7 @@ input int      RangeMinutes     = 30;     // opening-range length (min)
 input int      EODHour          = 23;     // flatten/no-new-trades after this hour
 input bool      NoFridayEntry    = true;  // no Friday entries
 input bool      AllowOpposing    = false; // false = block a new trade opposite to an in-PROFIT position
+input bool      LongOnly         = false; // true = take ONLY long breakouts (leans on NAS up-drift; ~+12pp 1-mo pass in backtest, but a directional bet)
 
 input group "=== Risk & exits (sprint preset) ==="
 input double   RiskPercent     = 1.25;   // % risked per trade (1R)
@@ -196,7 +197,7 @@ void OnTick()
       if(ask>=g_rHigh[i] && (AllowOpposing || !OpposingInProfit(+1))){
          double sl=NormalizeDouble(ask-StopDistance,_Digits);
          if(trade.Buy(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=bid; }
-      } else if(bid<=g_rLow[i] && (AllowOpposing || !OpposingInProfit(-1))){
+      } else if(!LongOnly && bid<=g_rLow[i] && (AllowOpposing || !OpposingInProfit(-1))){
          double sl=NormalizeDouble(bid+StopDistance,_Digits);
          if(trade.Sell(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=ask; }
       }
