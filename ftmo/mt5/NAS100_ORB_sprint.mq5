@@ -2,17 +2,18 @@
 //|                                            NAS100_ORB_sprint.mq5  |
 //|   1-MONTH SPRINT preset — multi-session US Opening-Range Breakout |
 //|   Trades 15h AND 16h (server) opens in ONE EA, 80pt stop=1R,      |
-//|   BE@1R, HARD TP@2R (caps fat tail for the 50% consistency rule), |
-//|   EOD flat, range+volume filters, NO overnight.                   |
+//|   BE@1R, HARD TP@1.6R, EOD flat, range+volume filters, NO o/night.|
 //|                                                                   |
-//|   Consistency-rule MC (best day<=50% of profit, r=1.25%, $15k):   |
-//|   2R TP lifts pass<=1mo ~26%->41% (long-only) / ~21%->34% (both)  |
-//|   vs trail-only, and cuts blow-up ~8-14pp. See ftmo/mc_hardtp.py. |
+//|   STRICT consistency rule = no single day > $750 (50% of the      |
+//|   $1,500 goal, HARD cap). Two 2R wins stack to ~$800 and BREAK it |
+//|   -> 2R is unsafe. TP 1.6R keeps a 2-win day ~$660 (<$750 w/ room)|
+//|   pass<=1mo ~37%, eventual ~55%. Optional DailyProfitCap backstop.|
+//|   See ftmo/mc_consistency_strict.py.                              |
 //|   REQUIRES A HEDGING ACCOUNT (two positions can be open at once). |
 //|   Backtest in the Strategy Tester before going live.              |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
-#property version   "1.20"
+#property version   "1.30"
 #property strict
 #include <Trade/Trade.mqh>
 
@@ -29,7 +30,8 @@ input double   RiskPercent     = 1.25;   // % risked per trade (1R)
 input double   StopDistance     = 80.0;  // 1R stop in PRICE units (index points)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
 input double   TrailR            = 5.0;  // trail stop this many R behind extreme (dominated when TakeProfitR>0)
-input double   TakeProfitR        = 2.0;  // hard TP this many R (0 = trail-only). 2R caps the fat tail -> big jump in consistency-rule pass rate (rule 1mo 26%->41% long-only, see mc_hardtp.py). Set 0 to disable.
+input double   TakeProfitR        = 1.6;  // hard TP this many R (0 = trail-only). Sized so TWO winning sessions in a day (2*1.6R~$660) stay under the $750 hard daily cap (50% of the $1,500 goal). 2R is UNSAFE (2 wins ~$800 breaks the rule). See mc_consistency_strict.py.
+input double   DailyProfitCap     = 0.0;  // backstop: stop opening NEW entries once realized profit today >= this $ (0=off). Set ~650 to hard-guarantee the $750/day consistency cap.
 input double   MaxSpreadPrice    = 12.0; // skip entry if spread wider than this
 
 input group "=== Edge filters ==="
@@ -51,6 +53,7 @@ bool     g_ready[MAXS], g_traded[MAXS], g_skip[MAXS];
 double   g_hist[MAXS][80];
 int      g_histN[MAXS];
 datetime g_day=0;
+double   g_dayStartBal=0;
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -150,7 +153,7 @@ void OnTick()
 {
    datetime now=TimeCurrent(); MqlDateTime st; TimeToStruct(now,st);
    datetime ds=DayStart(now);
-   if(ds!=g_day){ g_day=ds; for(int i=0;i<g_nSess;i++){ g_ready[i]=false; g_traded[i]=false; g_skip[i]=false; g_extreme[i]=0; } }
+   if(ds!=g_day){ g_day=ds; g_dayStartBal=AccountInfoDouble(ACCOUNT_BALANCE); for(int i=0;i<g_nSess;i++){ g_ready[i]=false; g_traded[i]=false; g_skip[i]=false; g_extreme[i]=0; } }
 
    double ask=SymbolInfoDouble(_Symbol,SYMBOL_ASK), bid=SymbolInfoDouble(_Symbol,SYMBOL_BID);
    double spread=ask-bid;
@@ -192,6 +195,7 @@ void OnTick()
 
       // entry
       if(g_traded[i] || g_skip[i]) continue;
+      if(DailyProfitCap>0 && AccountInfoDouble(ACCOUNT_BALANCE)-g_dayStartBal>=DailyProfitCap) continue; // daily consistency backstop
       if(NoFridayEntry && st.day_of_week==5) continue;
       if(spread>MaxSpreadPrice) continue;
       if(UseVolConfirm && (double)lastVol<=g_rVolAvg[i]) continue;
