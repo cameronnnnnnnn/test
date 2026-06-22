@@ -42,7 +42,7 @@ def build_all():
     return DAYS,ctx
 
 def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
-           cost=2.0,eod_hr=23, atr_stop=None, tp_R=None,
+           cost=2.0,eod_hr=23, atr_stop=None, tp_R=None, lock_trig=None, lock_to=None,
            # base validated filters (kept ON):
            rng_filter=True, vol_confirm=True,
            # the 10 NEW levers:
@@ -131,6 +131,11 @@ def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
                     pyr=True; entry2=entry+pos*2*risk
                 if be_at is not None and curR>=be_at:
                     stop_px=max(stop_px,entry) if pos>0 else min(stop_px,entry)
+                if lock_trig is not None:   # stepped lock: once FE reaches lock_trig*R, lock stop at lock_to*R
+                    extR=(pos*(ext-entry))/risk
+                    if extR>=lock_trig:
+                        lp=entry+pos*lock_to*risk
+                        stop_px=max(stop_px,lp) if pos>0 else min(stop_px,lp)
                 if chandelier is not None and np.isfinite(atrd):
                     ts=ext-pos*chandelier*atrd
                     stop_px=max(stop_px,ts) if pos>0 else min(stop_px,ts)
