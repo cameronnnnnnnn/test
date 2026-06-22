@@ -2,18 +2,17 @@
 //|                                            NAS100_ORB_sprint.mq5  |
 //|   1-MONTH SPRINT preset — multi-session US Opening-Range Breakout |
 //|   Trades 15h AND 16h (server) opens in ONE EA, 80pt stop=1R,      |
-//|   BE@1R, HARD TP@1.6R, EOD flat, range+volume filters, NO o/night.|
+//|   BE@1R, HARD TP@3R, EOD flat, range+volume filters, NO overnight.|
 //|                                                                   |
-//|   STRICT consistency rule = no single day > $750 (50% of the      |
-//|   $1,500 goal, HARD cap). Two 2R wins stack to ~$800 and BREAK it |
-//|   -> 2R is unsafe. TP 1.6R keeps a 2-win day ~$660 (<$750 w/ room)|
-//|   pass<=1mo ~37%, eventual ~55%. Optional DailyProfitCap backstop.|
-//|   See ftmo/mc_consistency_strict.py.                              |
+//|   FTMO 1-Step 50% BEST-DAY rule (best day <= 50% of POSITIVE-day  |
+//|   sum, dilutable, NOT a breach). It's mild, so the TP barely       |
+//|   matters; 3R is the optimum: pass<=1mo ~46% long-only / ~37% both|
+//|   eventual ~56%/48%. See ftmo/mc_bestday_rule.py.                 |
 //|   REQUIRES A HEDGING ACCOUNT (two positions can be open at once). |
 //|   Backtest in the Strategy Tester before going live.              |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
-#property version   "1.30"
+#property version   "1.40"
 #property strict
 #include <Trade/Trade.mqh>
 
@@ -30,8 +29,8 @@ input double   RiskPercent     = 1.25;   // % risked per trade (1R)
 input double   StopDistance     = 80.0;  // 1R stop in PRICE units (index points)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
 input double   TrailR            = 5.0;  // trail stop this many R behind extreme (dominated when TakeProfitR>0)
-input double   TakeProfitR        = 1.6;  // hard TP this many R (0 = trail-only). Sized so TWO winning sessions in a day (2*1.6R~$660) stay under the $750 hard daily cap (50% of the $1,500 goal). 2R is UNSAFE (2 wins ~$800 breaks the rule). See mc_consistency_strict.py.
-input double   DailyProfitCap     = 0.0;  // backstop: stop opening NEW entries once realized profit today >= this $ (0=off). Set ~650 to hard-guarantee the $750/day consistency cap.
+input double   TakeProfitR        = 3.0;  // hard TP this many R (0 = trail-only). 3R is the optimum under FTMO's real 50% best-day rule (best day <= 50% of positive-day sum, dilutable). Trail-only/4R are within ~1pp; <=2R needlessly sacrifices edge. See mc_bestday_rule.py.
+input double   DailyProfitCap     = 0.0;  // optional: stop opening NEW entries once realized profit today >= this $ (0=off). NOT needed for the best-day rule (no hard daily cap); leave off unless you want a manual daily lock.
 input double   MaxSpreadPrice    = 12.0; // skip entry if spread wider than this
 
 input group "=== Edge filters ==="
