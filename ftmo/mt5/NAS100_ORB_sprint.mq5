@@ -2,15 +2,17 @@
 //|                                            NAS100_ORB_sprint.mq5  |
 //|   1-MONTH SPRINT preset — multi-session US Opening-Range Breakout |
 //|   Trades 15h AND 16h (server) opens in ONE EA, 80pt stop=1R,      |
-//|   BE@1R, trail 5R, EOD flat, range+volume filters, NO overnight.  |
+//|   BE@1R, HARD TP@2R (caps fat tail for the 50% consistency rule), |
+//|   EOD flat, range+volume filters, NO overnight.                   |
 //|                                                                   |
-//|   MC (EOD trailing 10% DD, +10% goal, r=1.25%): ~44% PASS inside  |
-//|   1 month, ~12% pass later, ~44% blow. Fast sprint = high variance|
+//|   Consistency-rule MC (best day<=50% of profit, r=1.25%, $15k):   |
+//|   2R TP lifts pass<=1mo ~26%->41% (long-only) / ~21%->34% (both)  |
+//|   vs trail-only, and cuts blow-up ~8-14pp. See ftmo/mc_hardtp.py. |
 //|   REQUIRES A HEDGING ACCOUNT (two positions can be open at once). |
 //|   Backtest in the Strategy Tester before going live.              |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
 #include <Trade/Trade.mqh>
 
@@ -26,7 +28,8 @@ input group "=== Risk & exits (sprint preset) ==="
 input double   RiskPercent     = 1.25;   // % risked per trade (1R)
 input double   StopDistance     = 80.0;  // 1R stop in PRICE units (index points)
 input double   BreakevenR        = 1.0;  // move SL to entry once +this many R
-input double   TrailR            = 5.0;  // trail stop this many R behind extreme
+input double   TrailR            = 5.0;  // trail stop this many R behind extreme (dominated when TakeProfitR>0)
+input double   TakeProfitR        = 2.0;  // hard TP this many R (0 = trail-only). 2R caps the fat tail -> big jump in consistency-rule pass rate (rule 1mo 26%->41% long-only, see mc_hardtp.py). Set 0 to disable.
 input double   MaxSpreadPrice    = 12.0; // skip entry if spread wider than this
 
 input group "=== Edge filters ==="
@@ -196,10 +199,12 @@ void OnTick()
       trade.SetExpertMagicNumber(magic);
       if(ask>=g_rHigh[i] && (AllowOpposing || !OpposingInProfit(+1))){
          double sl=NormalizeDouble(ask-StopDistance,_Digits);
-         if(trade.Buy(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=bid; }
+         double tp=(TakeProfitR>0)?NormalizeDouble(ask+TakeProfitR*StopDistance,_Digits):0.0;
+         if(trade.Buy(lots,_Symbol,0.0,sl,tp,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=bid; }
       } else if(!LongOnly && bid<=g_rLow[i] && (AllowOpposing || !OpposingInProfit(-1))){
          double sl=NormalizeDouble(bid+StopDistance,_Digits);
-         if(trade.Sell(lots,_Symbol,0.0,sl,0.0,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=ask; }
+         double tp=(TakeProfitR>0)?NormalizeDouble(bid-TakeProfitR*StopDistance,_Digits):0.0;
+         if(trade.Sell(lots,_Symbol,0.0,sl,tp,"ORB"+IntegerToString(g_hours[i]))){ g_traded[i]=true; g_extreme[i]=ask; }
       }
    }
 }

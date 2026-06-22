@@ -42,7 +42,7 @@ def build_all():
     return DAYS,ctx
 
 def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
-           cost=2.0,eod_hr=23, atr_stop=None,
+           cost=2.0,eod_hr=23, atr_stop=None, tp_R=None,
            # base validated filters (kept ON):
            rng_filter=True, vol_confirm=True,
            # the 10 NEW levers:
@@ -121,6 +121,10 @@ def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
                 adv=(entry-sL[k]) if pos>0 else (sH[k]-entry); mae=max(mae,adv)
                 if (pos>0 and sL[k]<=stop_px) or (pos<0 and sH[k]>=stop_px):
                     exitR=(pos*(stop_px-entry))/risk; exit_k=k; break
+                if tp_R is not None:   # hard take-profit (stop checked first = conservative on huge bars)
+                    tp_px=entry+pos*tp_R*risk
+                    if (pos>0 and sH[k]>=tp_px) or (pos<0 and sL[k]<=tp_px):
+                        exitR=tp_R; exit_k=k; break
                 ext=max(ext,sH[k]) if pos>0 else min(ext,sL[k])
                 curR=(pos*(sC[k]-entry))/risk
                 if pyramid and not pyr and curR>=2.0:
