@@ -1,2 +1,5 @@
 *.db
 debrief.md
+
+# generated journal artifacts
+ftmo/journal/debrief.md
