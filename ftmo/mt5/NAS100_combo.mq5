@@ -37,7 +37,8 @@ input double MaxSpreadPts = 12.0;  // skip entry if spread wider (index points)
 input group "=== Setup toggles ==="
 input bool   UseA_ORB      = true;
 input bool   UseB_Pullback = true;
-input bool   UseC_Fade     = true;
+input bool   UseC_Fade     = false;  // fade leg is a net drag once losses are booked at -1R; off
+input bool   UseScaleOut   = false;  // OFF = trail-only (the real edge lives in the fat tail)
 
 input group "=== Fade (Setup C) tuning ==="
 input double FadeZ         = 2.0;  // sigma stretch to fade
@@ -166,8 +167,8 @@ void ManagePos(int s)
 
    if(type==POSITION_TYPE_BUY){
       if(bid>g_extreme[s]) g_extreme[s]=bid;
-      // scale-out partial
-      if(!g_partDone[s] && bid-entry>=PartR[s]*Stop[s]){
+      // scale-out partial (only if enabled)
+      if(UseScaleOut && !g_partDone[s] && bid-entry>=PartR[s]*Stop[s]){
          double cv=MathFloor((vol*PartFrac[s])/step)*step;
          if(cv>=mn && (vol-cv)>=mn){ trade.SetExpertMagicNumber(magic); trade.PositionClosePartial(tk,cv); }
          g_partDone[s]=true;
@@ -178,7 +179,7 @@ void ManagePos(int s)
       if(newSL>curSL+_Point){ trade.SetExpertMagicNumber(magic); trade.PositionModify(tk,NormalizeDouble(newSL,_Digits),0.0); }
    } else if(type==POSITION_TYPE_SELL){
       if(ask<g_extreme[s]||g_extreme[s]==0) g_extreme[s]=ask;
-      if(!g_partDone[s] && entry-ask>=PartR[s]*Stop[s]){
+      if(UseScaleOut && !g_partDone[s] && entry-ask>=PartR[s]*Stop[s]){
          double cv=MathFloor((vol*PartFrac[s])/step)*step;
          if(cv>=mn && (vol-cv)>=mn){ trade.SetExpertMagicNumber(magic); trade.PositionClosePartial(tk,cv); }
          g_partDone[s]=true;

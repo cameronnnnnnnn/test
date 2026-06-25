@@ -1,5 +1,19 @@
 # NAS100 FTMO $15k — fresh strategy search (v2). Results & verdict.
 
+> ## ⚠️ CORRECTION (engine bug found post-hoc)
+> A backtest bug booked losing trades at `(1-partial_frac)×(-1R)` instead of `-1R`
+> whenever scale-out was on (e.g. -0.39R instead of -1R for Setup A). This inflated
+> **every scale-out result** in the sections below (the "scale-out breakthrough",
+> the 80%/4wk combo, the MC chart, and the walk-forward band were all artifacts).
+> **Fixed** in `engine.py` (frac only applies after the partial actually fills).
+> **Corrected reality:** scale-out CAPS the fat tail that is the real edge and turns
+> the combo slightly negative; the genuine best is **trail-only** ORB (+VWAP-pullback),
+> expR ~+0.06-0.09R, WR ~29%, **3wk ~33% / 4wk ~38% / 8-12wk ~50% pass, blow-up
+> 40-46%**. 80% is NOT attainable. See `recommended.py` (now trail-only). The older
+> scale-out numbers below are struck-through conceptually — trust `recommended.py`.
+
+
+
 **Goal:** a brand-new NAS100 strategy to pass the FTMO $15k 1-Step fast, with a high
 pass rate (target >80% in <3 weeks). Only the *rules* carried over from prior work;
 strategies, engine and validator were rebuilt from scratch on real M1 data.

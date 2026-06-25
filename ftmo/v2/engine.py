@@ -86,7 +86,10 @@ def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
                 exit_px = tp_px; reason = "tp"; exit_bar = b; break
 
         runner_R = (d * (exit_px - entry)) / stop
-        R = part_R + (1.0 - pfrac) * runner_R - cost_pts / stop
+        # the scale-out fraction is only off the table if the partial actually filled;
+        # otherwise the FULL position rides the runner (a stop-out is a real -1R)
+        frac_out = pfrac if part_done else 0.0
+        R = part_R + (1.0 - frac_out) * runner_R - cost_pts / stop
         rows.append(dict(
             day=od.get("day"), tag=od.get("tag", ""),
             entry_dt=idx[b0 + 1], exit_dt=idx[exit_bar], dir=d,
