@@ -47,6 +47,10 @@ def main():
         ("** SCALEOUT: US ORB 2/3@2R",  S.orb(df, **{**base, "vol_filter":True, "partial_R":2.0, "partial_frac":0.67})),
         ("** SCALEOUT combo A+B",       S.orb(df, **{**base, "vol_filter":True, "partial_R":2.0, "partial_frac":0.67})
                                         + S.vwap_pullback(df, stop_pts=40, trail_R=3.0, partial_R=2.0, partial_frac=0.5)),
+        ("Fade C: selective range-fade", S.vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_frac=0.5)),
+        ("** BEST 3-way A+B+C",         S.orb(df, **{**base, "vol_filter":True, "partial_R":2.0, "partial_frac":0.67})
+                                        + S.vwap_pullback(df, stop_pts=40, trail_R=3.0, partial_R=2.0, partial_frac=0.5)
+                                        + S.vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_frac=0.5)),
     ]
     print("="*128)
     print(f"{'STRATEGY':30s} {'n':>4} {'t/wk':>4} {'WR':>5} {'expR':>7} {'PF':>5} "

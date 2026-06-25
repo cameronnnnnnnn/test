@@ -22,7 +22,7 @@ MIN_DAYS = 4
 
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
            floor_mode="static", sizing="fixed",
-           risk_k=0.125, r_min=0.003, r_max=0.02):
+           risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -88,7 +88,7 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         days_traded += np.where(live, Tr[:, t], 0)
 
         # pass check (target + min days + consistency)
-        consistent = max_green <= 0.5 * sum_green + 1e-12
+        consistent = (max_green <= 0.5 * sum_green + 1e-12) if consistency else True
         pass_now = live & (E >= TARGET) & (days_traded >= MIN_DAYS) & consistent
         passed |= pass_now
         t_pass = np.where(pass_now & (t_pass < 0), t, t_pass)

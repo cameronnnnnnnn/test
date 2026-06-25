@@ -94,7 +94,7 @@ def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
             R=R, mae_R=mae / stop, mfe_R=mfe / stop))
     return pd.DataFrame(rows)
 
-def trades_to_days(trades, all_days):
+def trades_to_days(trades, all_days, daily_stop_R=0.0):
     """
     Aggregate trades to one row per CALENDAR (server) day:
       day_R      net R for the day
@@ -106,13 +106,16 @@ def trades_to_days(trades, all_days):
     """
     recs = {}
     for day, g in trades.groupby("day"):
-        cum = 0.0; lo = 0.0; hi = 0.0
-        for _, t in g.iterrows():
+        cum = 0.0; lo = 0.0; hi = 0.0; nt = 0
+        for _, t in g.sort_values("entry_dt").iterrows():
+            # daily-loss stop: once the day is down daily_stop_R, take no more trades
+            if daily_stop_R > 0 and cum <= -daily_stop_R:
+                break
             lo = min(lo, cum + t["mae_R"])      # dip while this trade is open
             hi = max(hi, cum + t["mfe_R"])
             cum += t["R"]
-            lo = min(lo, cum); hi = max(hi, cum)
-        recs[day] = dict(day_R=cum, day_min_R=lo, day_max_R=hi, n=len(g))
+            lo = min(lo, cum); hi = max(hi, cum); nt += 1
+        recs[day] = dict(day_R=cum, day_min_R=lo, day_max_R=hi, n=nt)
     out = pd.DataFrame([{"day": d, **recs[d]} for d in sorted(recs)])
     return out
 

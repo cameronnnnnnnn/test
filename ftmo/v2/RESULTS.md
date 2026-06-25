@@ -4,25 +4,30 @@
 pass rate (target >80% in <3 weeks). Only the *rules* carried over from prior work;
 strategies, engine and validator were rebuilt from scratch on real M1 data.
 
-## TL;DR (updated after the scale-out breakthrough)
-The decisive lever was **scale-out exits** (bank most of a winner at +2R, run a
-breakeven remainder). It roughly **doubled** the pass rate by lifting the daily
-Sharpe from ~0.06 to ~0.31. The final **2-setup scale-out combo** (cost 3pt,
-validated OOS and every year 2022-25):
+## TL;DR (updated: scale-out + a 3rd decorrelated setup)
+Two levers broke the old ~32% ceiling: **scale-out exits** (bank most of a winner at
++2R, run a breakeven remainder) lifted daily Sharpe ~0.06→0.31; then a **3rd,
+negatively-correlated selective range-fade** lifted it to ~0.37 and pushed the 80%
+mark from ~5 weeks down to ~4. Final **3-setup scale-out combo** (cost 3pt, validated
+OOS and every year 2022-25), per-trade risk **1.0%**:
 
-| deadline | r=1.00% (safe) | r=1.25% (faster) |
-|---|---|---|
-| 3 weeks | 58% pass / 1% blow | **64% / 6%** |
-| 4 weeks | **73% / 1%** | 76% / 7% |
-| 5 weeks | **82% / 1%** | 82% / 8% |
-| 6 weeks | 87% / 1% | 86% / 9% |
-| 8 weeks | 94% / 2% | 89% / 9% |
+| deadline | r=0.90% | r=1.00% | r=1.25% (cap-risky) |
+|---|---|---|---|
+| 3 weeks | 63% / 2% | **67% / 2%** | 67% / 15% |
+| 4 weeks | 77% / 2% | **81% / 2%** | 76% / 16% |
+| 5 weeks | 86% / 2% | **88% / 3%** | 80% / 16% |
+| 6 weeks | 91% / 2% | 92% / 3% | 81% / 17% |
+| 8 weeks | 95% / 3% | 95% / 3% | 82% / 17% |
 
-- **>80% in <3 weeks is still not reached** (~64% there) — that exact corner needs a
-  daily Sharpe ~1.0 and we have ~0.31. But **80% is reachable at ~5 weeks with ~1%
-  blow-up**, which was impossible with every earlier approach.
-- The early part of this doc (the breakout-only families that ceiling ~32%) is kept
-  as the research trail; the **recommended strategy is the scale-out combo** below.
+- **80% is now reached at ~4 weeks** (81% / 2% blow) — it was unreachable at any
+  deadline with the earlier breakout-only approach.
+- **>80% in <3 weeks is still not reached** (~67%): that corner needs daily Sharpe
+  ~1.0 and we have ~0.37. The 3-week number nearly doubled (32%→67%).
+- **Daily cap (3%) drives sizing:** 3 trades/day, so keep r ≤ ~1.0% — three full stops
+  must stay under 3% (the r=1.25% column shows the breach: blow-up jumps to ~16%).
+- **Consistency (50% best-day)** costs only ~1pp — scale-out caps single-day spikes.
+- The early part of this doc (breakout-only, ceiling ~32%) is the research trail; the
+  **recommended strategy is the 3-setup scale-out combo** (`recommended.py`).
 
 ## Data, engine, validator (all rebuilt)
 - **Data:** real FTMO MT5 **US100 M1**, 1,042,353 bars, **2022-10-18 → 2025-10-01**,
@@ -68,12 +73,20 @@ an uptrend (price > VWAP, VWAP rising) buy a dip that tags VWAP and closes back 
 (mirror for shorts). **40-pt stop = 1R. Scale 1/2 out at +2R**; runner to breakeven +
 trail 3R.
 
-**Edge:** expR **+0.37**, PF 2.2, WR 36%, ~10 trades/wk, daily Sharpe ~0.31.
+**Setup C — selective range-fade, scale-out (the decorrelator).** ONLY when VWAP is
+flat (a range day, |VWAP slope| small), fade a >2σ stretch from VWAP back toward it.
+**40-pt stop = 1R. Scale 1/2 out at +1R**; runner to BE + trail 2R. Standalone edge
++0.16R, WR 48%, and **−0.11 correlation** with A+B — it wins on the chop that the
+trend setups give back, which is what lifts the combo's daily Sharpe.
+
+**Edge (A+B+C):** expR **+0.30**, PF 2.0, WR 40%, ~15 trades/wk, daily Sharpe ~0.37.
 
 **Validation (robust):**
-- **Every year positive:** 2022 +0.50, 2023 +0.28, 2024 +0.40, 2025 +0.33.
-- **Both directions:** long +0.38, short +0.31.
-- **Out-of-sample** (last 12 mo, never used to pick params), 4pt cost: 3wk 63% / 4wk 75%.
+- **Combo positive every year:** 2022 +0.50, 2023 +0.28, 2024 +0.40, 2025 +0.33;
+  the fade leg is +0.18/+0.15/+0.11 in 2023/24/25 (flat in the violent 2022 bear).
+- **Both directions** positive on all three setups.
+- **Out-of-sample** (last 12 mo, never used to pick params), 4pt cost: 3wk 66% /
+  4wk 78% / 5wk 85% — matches the full sample.
 - **Cost stress:** edge survives to 6pt.
 
 ## Why this works (and where the wall still is)
@@ -85,10 +98,13 @@ weeks** needs daily Sharpe ~1.0 (normal-day model through the exact rules: Sharp
 for a single-instrument directional edge — while 80% at **5 weeks** is now solid.
 
 ## Recommendation
-- **Best plan:** run the combo at **r = 1.00%** → ~73% pass in 4 weeks, ~82% in 5,
-  ~1% blow-up. This is the safe, high-probability route.
-- **Faster:** r = 1.25% → ~64% in 3 weeks at ~6% blow-up.
+- **Best plan:** run the 3-setup combo at **r = 1.00%** → ~67% pass in 3 weeks, ~81%
+  in 4, ~88% in 5, with ~2-3% blow-up. Do **not** exceed ~1.0%: 3 trades/day means
+  three stops must fit under the 3% daily cap (r=1.25% breaches and blow-up jumps to
+  ~16%).
+- **Simpler/safer:** the 2-setup variant (A+B, no fade) is ~80% at 5 weeks with only
+  2 trades/day and more daily headroom — fewer moving parts to run live.
 - **Live caveat:** these assume limit-fill partials and breakeven runners; real fills
-  slip, so expect somewhat lower live — 1.00% sizing leaves margin. Re-validate on
-  your own fills via the journal once running.
+  slip, so expect somewhat lower live — 1.0% sizing leaves margin. Re-validate on your
+  own fills via the journal once running.
 - **Reproduce:** `python3 recommended.py` · `python3 optimize.py` · `python3 scoreboard.py`.

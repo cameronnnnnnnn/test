@@ -261,6 +261,49 @@ def open_drive(df, drive_min=5, min_pts=15, stop_pts=50, trail_R=3.0,
                            eod_bar=post[-1], day=day, tag="drive"))
     return orders
 
+# ----------------------------------------------------------------------------
+# 8) SELECTIVE VWAP fade — only on RANGE days (flat VWAP). Designed to win when
+#    the trend setups lose -> a decorrelating 3rd leg. Scale-out enabled.
+# ----------------------------------------------------------------------------
+def vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_frac=0.5,
+                  open_min=16*60, start_off=30, entry_by=21*60, win=30,
+                  flat_pts=15, slope_bars=40):
+    h, l, c, v = (df["high"].values, df["low"].values, df["close"].values,
+                  df["tickvol"].values.astype(float))
+    tp = (h + l + c) / 3.0
+    tod = df["tod"].values
+    orders = []
+    for day, gi in _day_groups(df).items():
+        t = tod[gi]
+        sess = gi[(t >= open_min) & (t <= SESS_END)]
+        if len(sess) < 80:
+            continue
+        eod = sess[-1]
+        cum_pv = np.cumsum(tp[sess] * v[sess]); cum_v = np.cumsum(v[sess]) + 1e-9
+        vwap = cum_pv / cum_v
+        dev = c[sess] - vwap
+        sig = pd.Series(dev).rolling(win, min_periods=win).std().values
+        ts = tod[sess]
+        spec = ExitSpec(tp_R=0.0, be_R=0.0, trail_R=trail_R, max_bars=10**9,
+                        partial_R=partial_R, partial_frac=partial_frac)
+        for j in range(slope_bars, len(sess) - 1):
+            if ts[j] < open_min + start_off or ts[j] > entry_by:
+                continue
+            if not np.isfinite(sig[j]) or sig[j] <= 0:
+                continue
+            slope = abs(vwap[j] - vwap[j - slope_bars])
+            if slope > flat_pts:                 # only fade when VWAP is FLAT (range)
+                continue
+            z = dev[j] / sig[j]
+            if z >= k:
+                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="fadeR")); break
+            if z <= -k:
+                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="fadeR")); break
+    return orders
+
 REGISTRY = {"orb": orb, "or_fade": or_fade, "vwap_fade": vwap_fade,
             "orb_retest": orb_retest, "ib_break": ib_break, "pdh_pdl": pdh_pdl,
-            "vwap_pullback": vwap_pullback, "open_drive": open_drive}
+            "vwap_pullback": vwap_pullback, "open_drive": open_drive,
+            "vwap_fade_sel": vwap_fade_sel}
