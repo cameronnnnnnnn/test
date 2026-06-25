@@ -30,9 +30,10 @@ input int    EODHour      = 22;    // flatten after EODHour:EODMin
 input int    EODMin       = 55;
 input bool   NoFridayEntry= false;   // Fridays HELP this EOD-flat strat (4wk pass 81% vs 68% without); keep them on
 
-input group "=== Risk ==="
-input double RiskPercent  = 1.0;   // % per trade (1R). KEEP <=1.0: 3 trades/day vs 3% daily cap
+input group "=== Risk & exit ==="
+input double RiskPercent  = 1.0;   // % per trade (1R). KEEP <=1.0 vs 3% daily cap
 input double MaxSpreadPts = 12.0;  // skip entry if spread wider (index points)
+input double TakeProfitR  = 4.0;   // hard take-profit in R (best in test). >0 disables trail/scale-out
 
 input group "=== Setup toggles ==="
 input bool   UseA_ORB      = true;
@@ -144,11 +145,12 @@ void OpenTrade(int s, int dir, double px)
 {
    double lots=LotsFor(Stop[s]); if(lots<=0) return;
    double sl = (dir>0)? px-Stop[s] : px+Stop[s];
+   double tp = (TakeProfitR>0)? ((dir>0)? px+TakeProfitR*Stop[s] : px-TakeProfitR*Stop[s]) : 0.0;
    ulong magic=MagicBase+s;
    trade.SetExpertMagicNumber(magic);
    string cm=(s==0?"A_ORB":(s==1?"B_PULL":"C_FADE"));
-   bool ok = (dir>0)? trade.Buy(lots,_Symbol,0.0,NormalizeDouble(sl,_Digits),0.0,cm)
-                    : trade.Sell(lots,_Symbol,0.0,NormalizeDouble(sl,_Digits),0.0,cm);
+   bool ok = (dir>0)? trade.Buy(lots,_Symbol,0.0,NormalizeDouble(sl,_Digits),NormalizeDouble(tp,_Digits),cm)
+                    : trade.Sell(lots,_Symbol,0.0,NormalizeDouble(sl,_Digits),NormalizeDouble(tp,_Digits),cm);
    if(ok){ g_traded[s]=true; g_partDone[s]=false;
            g_extreme[s]=(dir>0)?SymbolInfoDouble(_Symbol,SYMBOL_BID):SymbolInfoDouble(_Symbol,SYMBOL_ASK); }
 }
@@ -157,6 +159,7 @@ void ManagePos(int s)
 {
    ulong magic=MagicBase+s, tk;
    if(!SelPos(magic,tk)) return;
+   if(TakeProfitR>0) return;   // fixed SL+TP set at entry; no trail/scale-out management
    long type=PositionGetInteger(POSITION_TYPE);
    double entry=PositionGetDouble(POSITION_PRICE_OPEN);
    double curSL=PositionGetDouble(POSITION_SL);

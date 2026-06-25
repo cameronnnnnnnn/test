@@ -57,33 +57,28 @@ def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
         reason = "eod"; exit_px = C[last]; exit_bar = last
         for b in range(b0 + 1, last + 1):
             hi = H[b]; lo = L[b]
-            # excursions (favourable = d*(px-entry))
+            # 1) record excursions FIRST so the exit bar's extremes count toward MAE/MFE
             fav_hi = d * (hi - entry); fav_lo = d * (lo - entry)
             mfe = max(mfe, fav_hi if d > 0 else fav_lo)
             mae = min(mae, fav_lo if d > 0 else fav_hi)
-            # update running extreme for trailing
-            run_ext = max(run_ext, hi) if d > 0 else min(run_ext, lo)
-            # breakeven
-            if spec.be_R > 0 and not be_done:
-                if d * (run_ext - entry) >= spec.be_R * stop:
-                    stop_px = entry; be_done = True
-            # trail
-            if spec.trail_R > 0:
-                tstop = run_ext - d * spec.trail_R * stop
-                stop_px = tstop if d > 0 and tstop > stop_px else (
-                          tstop if d < 0 and tstop < stop_px else stop_px)
-            # STOP first (conservative)
+            # 2) EXITS are checked against stop_px / targets set by PRIOR bars (no
+            #    intra-bar look-ahead). Within a bar: STOP before targets (conservative).
             if (d > 0 and lo <= stop_px) or (d < 0 and hi >= stop_px):
                 exit_px = stop_px; reason = "stop"; exit_bar = b; break
-            # scale-out partial: bank pfrac at +partial_R, move runner to BE
             if spec.partial_R > 0 and not part_done:
                 ptp = entry + d * spec.partial_R * stop
                 if (d > 0 and hi >= ptp) or (d < 0 and lo <= ptp):
                     part_R = pfrac * spec.partial_R; part_done = True
                     stop_px = max(stop_px, entry) if d > 0 else min(stop_px, entry)
-            # TP (full)
             if tp_px is not None and ((d > 0 and hi >= tp_px) or (d < 0 and lo <= tp_px)):
                 exit_px = tp_px; reason = "tp"; exit_bar = b; break
+            # 3) update running extreme + breakeven + trail for the NEXT bar's checks
+            run_ext = max(run_ext, hi) if d > 0 else min(run_ext, lo)
+            if spec.be_R > 0 and not be_done and d * (run_ext - entry) >= spec.be_R * stop:
+                stop_px = max(stop_px, entry) if d > 0 else min(stop_px, entry); be_done = True
+            if spec.trail_R > 0:
+                tstop = run_ext - d * spec.trail_R * stop
+                stop_px = max(stop_px, tstop) if d > 0 else min(stop_px, tstop)
 
         runner_R = (d * (exit_px - entry)) / stop
         # the scale-out fraction is only off the table if the partial actually filled;

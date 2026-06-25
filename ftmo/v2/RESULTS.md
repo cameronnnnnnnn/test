@@ -6,11 +6,14 @@
 > **every scale-out result** in the sections below (the "scale-out breakthrough",
 > the 80%/4wk combo, the MC chart, and the walk-forward band were all artifacts).
 > **Fixed** in `engine.py` (frac only applies after the partial actually fills).
-> **Corrected reality:** scale-out CAPS the fat tail that is the real edge and turns
-> the combo slightly negative; the genuine best is **trail-only** ORB (+VWAP-pullback),
-> expR ~+0.06-0.09R, WR ~29%, **3wk ~33% / 4wk ~38% / 8-12wk ~50% pass, blow-up
-> 40-46%**. 80% is NOT attainable. See `recommended.py` (now trail-only). The older
-> scale-out numbers below are struck-through conceptually — trust `recommended.py`.
+> **Corrected reality:** an exhaustive exit search (`exitsearch.py`) over breakeven,
+> scale-out and fixed-RR exits with the fixed engine shows they all cluster near
+> zero-to-thin expR. Best for a fast pass is a **hard ~4R take-profit** (or wide
+> trail): expR ~+0.05-0.09R, WR ~30%, **3wk ~35% / 4wk ~38% / 8wk ~50% pass, blow-up
+> 40-50%**. No exit beats this by more than a few points. **80% is NOT attainable** —
+> the earlier scale-out 80% was the bug. `recommended.py` = ORB+pullback, hard 4R TP.
+> A second non-bug worth noting: the engine now checks trailing stops against the
+> *prior* bar's level (no intra-bar look-ahead) — confirmed it barely moves pure-trail.
 
 
 
