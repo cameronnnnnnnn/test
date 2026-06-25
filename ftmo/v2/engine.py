@@ -19,10 +19,12 @@ from dataclasses import dataclass
 
 @dataclass
 class ExitSpec:
-    tp_R: float = 0.0       # hard take-profit in R (0 = none)
-    be_R: float = 0.0       # move stop to breakeven once +be_R reached (0 = none)
-    trail_R: float = 0.0    # trail stop trail_R behind running extreme (0 = none)
-    max_bars: int = 10_000  # force time-exit this many bars after entry (EOD)
+    tp_R: float = 0.0          # hard take-profit in R (0 = none)
+    be_R: float = 0.0          # move stop to breakeven once +be_R reached (0 = none)
+    trail_R: float = 0.0       # trail stop trail_R behind running extreme (0 = none)
+    max_bars: int = 10_000     # force time-exit this many bars after entry (EOD)
+    partial_R: float = 0.0     # scale out partial_frac of size at +partial_R (0 = none)
+    partial_frac: float = 0.5  # fraction closed at the partial target; rest -> BE + trail
 
 def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
     """
@@ -47,6 +49,8 @@ def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
         run_ext = entry           # running favourable extreme
         be_done = False
         mae = 0.0; mfe = 0.0      # in points, signed favourable = +
+        part_done = False; part_R = 0.0
+        pfrac = spec.partial_frac if spec.partial_R > 0 else 0.0
         last = min(b0 + 1 + spec.max_bars, n - 1)
         if od.get("eod_bar"):
             last = min(last, od["eod_bar"])
@@ -71,12 +75,18 @@ def simulate(df, orders, cost_pts=2.0, slip_pts=0.0):
             # STOP first (conservative)
             if (d > 0 and lo <= stop_px) or (d < 0 and hi >= stop_px):
                 exit_px = stop_px; reason = "stop"; exit_bar = b; break
-            # TP
+            # scale-out partial: bank pfrac at +partial_R, move runner to BE
+            if spec.partial_R > 0 and not part_done:
+                ptp = entry + d * spec.partial_R * stop
+                if (d > 0 and hi >= ptp) or (d < 0 and lo <= ptp):
+                    part_R = pfrac * spec.partial_R; part_done = True
+                    stop_px = max(stop_px, entry) if d > 0 else min(stop_px, entry)
+            # TP (full)
             if tp_px is not None and ((d > 0 and hi >= tp_px) or (d < 0 and lo <= tp_px)):
                 exit_px = tp_px; reason = "tp"; exit_bar = b; break
 
-        net_pts = d * (exit_px - entry) - cost_pts
-        R = net_pts / stop
+        runner_R = (d * (exit_px - entry)) / stop
+        R = part_R + (1.0 - pfrac) * runner_R - cost_pts / stop
         rows.append(dict(
             day=od.get("day"), tag=od.get("tag", ""),
             entry_dt=idx[b0 + 1], exit_dt=idx[exit_bar], dir=d,

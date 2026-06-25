@@ -21,7 +21,8 @@ DAILY  = 0.03
 MIN_DAYS = 4
 
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
-           floor_mode="static"):
+           floor_mode="static", sizing="fixed",
+           risk_k=0.125, r_min=0.003, r_max=0.02):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -62,9 +63,15 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         if not live.any():
             break
         rt = R_[:, t]; rmin = Rmin[:, t]
+        # per-trade risk this day: fixed, or a fraction of the distance to the floor
+        # (static floor => buffer grows with profit => press when ahead, ease when behind)
+        if sizing == "buffer":
+            rr = np.clip(risk_k * (E - FLOOR), r_min, r_max)
+        else:
+            rr = risk
         # intraday floating low this day
-        intraday_loss_of_daystart = rmin * risk           # fraction of day-start
-        E_low = E * (1.0 + rmin * risk)                    # equity at intraday low
+        intraday_loss_of_daystart = rmin * rr              # fraction of day-start
+        E_low = E * (1.0 + rmin * rr)                      # equity at intraday low
         daily_breach   = intraday_loss_of_daystart <= -DAILY
         overall_breach = E_low <= FLOOR
         blow_now = live & (daily_breach | overall_breach)
@@ -73,8 +80,8 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
 
         live = ~passed & ~blown
         # close out the day for survivors
-        profit = E * rt * risk                              # start-units profit today
-        E = np.where(live, E * (1.0 + rt * risk), E)
+        profit = E * rt * rr                                # start-units profit today
+        E = np.where(live, E * (1.0 + rt * rr), E)
         gp = np.where(live & (profit > 0), profit, 0.0)
         sum_green += gp
         max_green = np.maximum(max_green, gp)

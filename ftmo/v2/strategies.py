@@ -26,7 +26,8 @@ def _day_groups(df):
 # 1) Opening-Range Breakout (baseline; both sides)  -- validates vs prior work
 # ----------------------------------------------------------------------------
 def orb(df, or_min=30, stop_pts=60, tp_R=3.0, be_R=1.0, trail_R=0.0,
-        long_only=False, open_min=CASH_OPEN, vol_filter=False, range_filter=False):
+        long_only=False, open_min=CASH_OPEN, vol_filter=False, range_filter=False,
+        partial_R=0.0, partial_frac=0.5):
     o, h, l = df["open"].values, df["high"].values, df["low"].values
     v = df["tickvol"].values.astype(float)
     tod, ii = df["tod"].values, df["i"].values
@@ -46,7 +47,8 @@ def orb(df, or_min=30, stop_pts=60, tp_R=3.0, be_R=1.0, trail_R=0.0,
             continue
         eod = post[-1]
         or_vavg = v[gi[orb_mask]].mean()
-        spec = ExitSpec(tp_R=tp_R, be_R=be_R, trail_R=trail_R, max_bars=10**9)
+        spec = ExitSpec(tp_R=tp_R, be_R=be_R, trail_R=trail_R, max_bars=10**9,
+                        partial_R=partial_R, partial_frac=partial_frac)
         for b in post[:-1]:
             if vol_filter and v[b] <= or_vavg:
                 # still allow the level to be crossed but require volume confirmation
@@ -164,4 +166,101 @@ def orb_retest(df, or_min=15, stop_pts=50, tp_R=0.0, be_R=0.0, trail_R=3.0,
                                    eod_bar=eod, day=day, tag="retest")); break
     return orders
 
-REGISTRY = {"orb": orb, "or_fade": or_fade, "vwap_fade": vwap_fade, "orb_retest": orb_retest}
+# ----------------------------------------------------------------------------
+# 4) Initial-Balance breakout: first IB minutes range, break after
+# ----------------------------------------------------------------------------
+def ib_break(df, ib_min=60, stop_pts=50, trail_R=3.0, tp_R=0.0, be_R=0.0,
+             open_min=16*60, long_only=False, vol_filter=False):
+    return orb(df, or_min=ib_min, stop_pts=stop_pts, trail_R=trail_R, tp_R=tp_R,
+               be_R=be_R, open_min=open_min, long_only=long_only, vol_filter=vol_filter)
+
+# ----------------------------------------------------------------------------
+# 5) Prior-Day High/Low breakout during the US session
+# ----------------------------------------------------------------------------
+def pdh_pdl(df, stop_pts=60, trail_R=3.0, open_min=16*60, long_only=False, buf=2):
+    h, l = df["high"].values, df["low"].values
+    tod = df["tod"].values
+    groups = list(_day_groups(df).items())
+    # prior full-day high/low
+    dayHL = {day: (h[gi].max(), l[gi].min()) for day, gi in groups}
+    orders = []
+    for k in range(1, len(groups)):
+        day, gi = groups[k]
+        prevH, prevL = dayHL[groups[k-1][0]]
+        t = tod[gi]
+        sess = gi[(t >= open_min) & (t <= SESS_END)]
+        if len(sess) < 10:
+            continue
+        eod = sess[-1]
+        spec = ExitSpec(tp_R=0.0, be_R=0.0, trail_R=trail_R, max_bars=10**9)
+        for b in sess[:-1]:
+            if h[b] >= prevH + buf:
+                orders.append(dict(entry_bar=b, dir=1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="pdh")); break
+            if (not long_only) and l[b] <= prevL - buf:
+                orders.append(dict(entry_bar=b, dir=-1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="pdl")); break
+    return orders
+
+# ----------------------------------------------------------------------------
+# 6) VWAP trend PULLBACK (continuation, not fade): buy dips to VWAP in an uptrend
+# ----------------------------------------------------------------------------
+def vwap_pullback(df, stop_pts=50, trail_R=3.0, tp_R=0.0, open_min=16*60,
+                  buf=8, trend_bars=20, entry_by=21*60, partial_R=0.0, partial_frac=0.5):
+    h, l, c, v = (df["high"].values, df["low"].values, df["close"].values,
+                  df["tickvol"].values.astype(float))
+    tp = (h + l + c) / 3.0
+    tod = df["tod"].values
+    orders = []
+    for day, gi in _day_groups(df).items():
+        t = tod[gi]
+        sess = gi[(t >= open_min) & (t <= SESS_END)]
+        if len(sess) < 60:
+            continue
+        eod = sess[-1]
+        cum_pv = np.cumsum(tp[sess] * v[sess]); cum_v = np.cumsum(v[sess]) + 1e-9
+        vwap = cum_pv / cum_v
+        cc = c[sess]; ll = l[sess]; hh = h[sess]; ts = tod[sess]
+        spec = ExitSpec(tp_R=tp_R, be_R=0.0, trail_R=trail_R, max_bars=10**9,
+                        partial_R=partial_R, partial_frac=partial_frac)
+        for j in range(trend_bars, len(sess) - 1):
+            if ts[j] > entry_by:
+                break
+            up = cc[j] > vwap[j] and vwap[j] > vwap[j - trend_bars]   # uptrend
+            dn = cc[j] < vwap[j] and vwap[j] < vwap[j - trend_bars]   # downtrend
+            if up and ll[j] <= vwap[j] + buf and cc[j] > vwap[j]:     # dip to VWAP, hold
+                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="vwpull")); break
+            if dn and hh[j] >= vwap[j] - buf and cc[j] < vwap[j]:
+                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stop_pts, spec=spec,
+                                   eod_bar=eod, day=day, tag="vwpull")); break
+    return orders
+
+# ----------------------------------------------------------------------------
+# 7) Opening drive: first drive_min strong directional candle -> continuation
+# ----------------------------------------------------------------------------
+def open_drive(df, drive_min=5, min_pts=15, stop_pts=50, trail_R=3.0,
+               open_min=16*60, long_only=False):
+    o, c = df["open"].values, df["close"].values
+    tod = df["tod"].values
+    orders = []
+    for day, gi in _day_groups(df).items():
+        t = tod[gi]
+        win = gi[(t >= open_min) & (t < open_min + drive_min)]
+        post = gi[(t >= open_min + drive_min) & (t <= SESS_END)]
+        if len(win) < 2 or len(post) < 5:
+            continue
+        drive = c[win[-1]] - o[win[0]]
+        if abs(drive) < min_pts:
+            continue
+        d = 1 if drive > 0 else -1
+        if long_only and d < 0:
+            continue
+        spec = ExitSpec(tp_R=0.0, be_R=0.0, trail_R=trail_R, max_bars=10**9)
+        orders.append(dict(entry_bar=post[0], dir=d, stop_pts=stop_pts, spec=spec,
+                           eod_bar=post[-1], day=day, tag="drive"))
+    return orders
+
+REGISTRY = {"orb": orb, "or_fade": or_fade, "vwap_fade": vwap_fade,
+            "orb_retest": orb_retest, "ib_break": ib_break, "pdh_pdl": pdh_pdl,
+            "vwap_pullback": vwap_pullback, "open_drive": open_drive}

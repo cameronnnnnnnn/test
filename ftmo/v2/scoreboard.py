@@ -44,7 +44,9 @@ def main():
         ("Breakout: ORB long-only",     O(**{**base, "long_only":True})),
         ("** BEST: vol US ORB trail3",  O(**{**base, "vol_filter":True})),
         ("Combo: US16:00 + US16:30",    S.orb(df, **base) + S.orb(df, **{**base, "open_min":16*60+30})),
-        ("Combo: US16 + London10",      S.orb(df, **base) + S.orb(df, **{**base, "open_min":10*60})),
+        ("** SCALEOUT: US ORB 2/3@2R",  S.orb(df, **{**base, "vol_filter":True, "partial_R":2.0, "partial_frac":0.67})),
+        ("** SCALEOUT combo A+B",       S.orb(df, **{**base, "vol_filter":True, "partial_R":2.0, "partial_frac":0.67})
+                                        + S.vwap_pullback(df, stop_pts=40, trail_R=3.0, partial_R=2.0, partial_frac=0.5)),
     ]
     print("="*128)
     print(f"{'STRATEGY':30s} {'n':>4} {'t/wk':>4} {'WR':>5} {'expR':>7} {'PF':>5} "
