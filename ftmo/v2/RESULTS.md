@@ -97,6 +97,17 @@ weeks** needs daily Sharpe ~1.0 (normal-day model through the exact rules: Sharp
 0.31→~60% pass at 15 days, 1.0→85%), so the 3-week/80% corner remains out of reach
 for a single-instrument directional edge — while 80% at **5 weeks** is now solid.
 
+## Pre-deploy tweaks tested — none beat the baseline (`improve.py`)
+Tested rigorously under the FTMO MC (OOS + per-year) before deployment:
+| idea | verdict |
+|---|---|
+| **ATR-scaled stops** (scale stops by recent vol) | **neutral once look-ahead removed.** With a *full-sample-median* denominator it looked great (OOS blow 6%→1%) — but that peeks at future vol. With a trailing ATR(14)/ATR(100) denominator (what the EA can compute live) it's identical on pass and slightly worse at r=1.25%. **Kept OFF.** |
+| ATR regime filter (skip top-10% vol days) | lowers blow but costs more pass — net worse |
+| HTF 20-day trend filter on A,B | **hurts badly** (4wk 80%→58%): kills good counter-trend session breaks (matches prior research) |
+| Fade-only-on-normal-vol | ~neutral (slightly higher expR, slightly lower pass) |
+The fixed-stop baseline is already at a solid local optimum; these knobs don't add
+edge. The look-ahead lesson is the main takeaway — validate scalers trailing-only.
+
 ## Recommendation
 - **Best plan:** run the 3-setup combo at **r = 1.00%** → ~67% pass in 3 weeks, ~81%
   in 4, ~88% in 5, with ~2-3% blow-up. Do **not** exceed ~1.0%: 3 trades/day means

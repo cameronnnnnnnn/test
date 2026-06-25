@@ -22,12 +22,39 @@ def prep(df):
 def _day_groups(df):
     return df.groupby("date").indices    # date -> positional index array
 
+def daily_atr(df, n=14):
+    """Per-date stop basis: 14-day ATR of the daily true range, shifted 1 day
+    (no look-ahead). Returns {date(normalized): atr_points}."""
+    g = df.groupby("date").agg(h=("high","max"), l=("low","min"), c=("close","last"))
+    pc = g["c"].shift(1)
+    tr = np.maximum(g["h"]-g["l"], np.maximum((g["h"]-pc).abs(), (g["l"]-pc).abs()))
+    atr = tr.rolling(n, min_periods=3).mean().shift(1)   # shift -> only prior days
+    return atr.to_dict()
+
+def vol_ratio(df, fast=14, slow=100, lo=0.6, hi=1.8):
+    """Look-ahead-free volatility scaler for stops: ATR(fast)/ATR(slow), both
+    trailing (shifted 1 day), clipped to [lo,hi]. Live EA computes the same from
+    iATR(14)/iATR(100) on D1. Returns {date: ratio}."""
+    g = df.groupby("date").agg(h=("high","max"), l=("low","min"), c=("close","last"))
+    pc = g["c"].shift(1)
+    tr = np.maximum(g["h"]-g["l"], np.maximum((g["h"]-pc).abs(), (g["l"]-pc).abs()))
+    af = tr.rolling(fast, min_periods=5).mean().shift(1)
+    asl = tr.rolling(slow, min_periods=20).mean().shift(1)
+    r = (af/asl).clip(lo, hi).fillna(1.0)
+    return r.to_dict()
+
+def _stp(stop_map, day, stop_pts):
+    if stop_map is None:
+        return stop_pts
+    v = stop_map.get(day, np.nan)
+    return float(v) if (v == v) else stop_pts   # NaN-safe fallback
+
 # ----------------------------------------------------------------------------
 # 1) Opening-Range Breakout (baseline; both sides)  -- validates vs prior work
 # ----------------------------------------------------------------------------
 def orb(df, or_min=30, stop_pts=60, tp_R=3.0, be_R=1.0, trail_R=0.0,
         long_only=False, open_min=CASH_OPEN, vol_filter=False, range_filter=False,
-        partial_R=0.0, partial_frac=0.5):
+        partial_R=0.0, partial_frac=0.5, stop_map=None):
     o, h, l = df["open"].values, df["high"].values, df["low"].values
     v = df["tickvol"].values.astype(float)
     tod, ii = df["tod"].values, df["i"].values
@@ -47,6 +74,7 @@ def orb(df, or_min=30, stop_pts=60, tp_R=3.0, be_R=1.0, trail_R=0.0,
             continue
         eod = post[-1]
         or_vavg = v[gi[orb_mask]].mean()
+        stp = _stp(stop_map, day, stop_pts)
         spec = ExitSpec(tp_R=tp_R, be_R=be_R, trail_R=trail_R, max_bars=10**9,
                         partial_R=partial_R, partial_frac=partial_frac)
         for b in post[:-1]:
@@ -55,10 +83,10 @@ def orb(df, or_min=30, stop_pts=60, tp_R=3.0, be_R=1.0, trail_R=0.0,
                 if h[b] >= rh or l[b] <= rl:
                     continue
             if h[b] >= rh:
-                orders.append(dict(entry_bar=b, dir=1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=b, dir=1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="orb")); break
             if (not long_only) and l[b] <= rl:
-                orders.append(dict(entry_bar=b, dir=-1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=b, dir=-1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="orb")); break
     return orders
 
@@ -206,7 +234,8 @@ def pdh_pdl(df, stop_pts=60, trail_R=3.0, open_min=16*60, long_only=False, buf=2
 # 6) VWAP trend PULLBACK (continuation, not fade): buy dips to VWAP in an uptrend
 # ----------------------------------------------------------------------------
 def vwap_pullback(df, stop_pts=50, trail_R=3.0, tp_R=0.0, open_min=16*60,
-                  buf=8, trend_bars=20, entry_by=21*60, partial_R=0.0, partial_frac=0.5):
+                  buf=8, trend_bars=20, entry_by=21*60, partial_R=0.0, partial_frac=0.5,
+                  stop_map=None):
     h, l, c, v = (df["high"].values, df["low"].values, df["close"].values,
                   df["tickvol"].values.astype(float))
     tp = (h + l + c) / 3.0
@@ -221,6 +250,7 @@ def vwap_pullback(df, stop_pts=50, trail_R=3.0, tp_R=0.0, open_min=16*60,
         cum_pv = np.cumsum(tp[sess] * v[sess]); cum_v = np.cumsum(v[sess]) + 1e-9
         vwap = cum_pv / cum_v
         cc = c[sess]; ll = l[sess]; hh = h[sess]; ts = tod[sess]
+        stp = _stp(stop_map, day, stop_pts)
         spec = ExitSpec(tp_R=tp_R, be_R=0.0, trail_R=trail_R, max_bars=10**9,
                         partial_R=partial_R, partial_frac=partial_frac)
         for j in range(trend_bars, len(sess) - 1):
@@ -229,10 +259,10 @@ def vwap_pullback(df, stop_pts=50, trail_R=3.0, tp_R=0.0, open_min=16*60,
             up = cc[j] > vwap[j] and vwap[j] > vwap[j - trend_bars]   # uptrend
             dn = cc[j] < vwap[j] and vwap[j] < vwap[j - trend_bars]   # downtrend
             if up and ll[j] <= vwap[j] + buf and cc[j] > vwap[j]:     # dip to VWAP, hold
-                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="vwpull")); break
             if dn and hh[j] >= vwap[j] - buf and cc[j] < vwap[j]:
-                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="vwpull")); break
     return orders
 
@@ -267,7 +297,7 @@ def open_drive(df, drive_min=5, min_pts=15, stop_pts=50, trail_R=3.0,
 # ----------------------------------------------------------------------------
 def vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_frac=0.5,
                   open_min=16*60, start_off=30, entry_by=21*60, win=30,
-                  flat_pts=15, slope_bars=40):
+                  flat_pts=15, slope_bars=40, stop_map=None):
     h, l, c, v = (df["high"].values, df["low"].values, df["close"].values,
                   df["tickvol"].values.astype(float))
     tp = (h + l + c) / 3.0
@@ -284,6 +314,7 @@ def vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_fr
         dev = c[sess] - vwap
         sig = pd.Series(dev).rolling(win, min_periods=win).std().values
         ts = tod[sess]
+        stp = _stp(stop_map, day, stop_pts)
         spec = ExitSpec(tp_R=0.0, be_R=0.0, trail_R=trail_R, max_bars=10**9,
                         partial_R=partial_R, partial_frac=partial_frac)
         for j in range(slope_bars, len(sess) - 1):
@@ -296,10 +327,10 @@ def vwap_fade_sel(df, k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_fr
                 continue
             z = dev[j] / sig[j]
             if z >= k:
-                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=sess[j], dir=-1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="fadeR")); break
             if z <= -k:
-                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stop_pts, spec=spec,
+                orders.append(dict(entry_bar=sess[j], dir=1, stop_pts=stp, spec=spec,
                                    eod_bar=eod, day=day, tag="fadeR")); break
     return orders
 

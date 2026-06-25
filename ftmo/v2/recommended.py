@@ -32,10 +32,16 @@ SETUP_A = dict(open_min=16*60, or_min=15, stop_pts=50, tp_R=0.0, be_R=0.0,
 SETUP_B = dict(stop_pts=40, trail_R=3.0, partial_R=2.0, partial_frac=0.5)
 SETUP_C = dict(k=2.0, stop_pts=40, trail_R=2.0, partial_R=1.0, partial_frac=0.5)
 COST = 3.0
+ATR_STOPS = False  # tested rigorously (see improve.py): once the ATR scaler is trailing-
+                   # only (no look-ahead), it is neutral-to-worse. Fixed stops win. Keep off.
 
 def orders(df):
-    return sorted(S.orb(df, **SETUP_A) + S.vwap_pullback(df, **SETUP_B)
-                  + S.vwap_fade_sel(df, **SETUP_C), key=lambda o: o["entry_bar"])
+    vr = S.vol_ratio(df) if ATR_STOPS else None
+    smap = (lambda base: {d: base*r for d, r in vr.items()}) if vr else (lambda base: None)
+    return sorted(S.orb(df, **SETUP_A, stop_map=smap(SETUP_A["stop_pts"]))
+                  + S.vwap_pullback(df, **SETUP_B, stop_map=smap(SETUP_B["stop_pts"]))
+                  + S.vwap_fade_sel(df, **SETUP_C, stop_map=smap(SETUP_C["stop_pts"])),
+                  key=lambda o: o["entry_bar"])
 
 def main():
     df = S.prep(data.load()); ad = np.array(sorted(df["date"].unique()))
