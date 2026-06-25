@@ -28,7 +28,7 @@ input int    ORMinutes    = 15;    // Setup A opening-range length
 input int    EntryByHour  = 21;    // no new B/C entries after this hour
 input int    EODHour      = 22;    // flatten after EODHour:EODMin
 input int    EODMin       = 55;
-input bool   NoFridayEntry= true;
+input bool   NoFridayEntry= false;   // Fridays HELP this EOD-flat strat (4wk pass 81% vs 68% without); keep them on
 
 input group "=== Risk ==="
 input double RiskPercent  = 1.0;   // % per trade (1R). KEEP <=1.0: 3 trades/day vs 3% daily cap
