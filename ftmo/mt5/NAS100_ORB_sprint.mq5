@@ -12,7 +12,7 @@
 //|   Backtest in the Strategy Tester before going live.              |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research"
-#property version   "1.40"
+#property version   "1.41"
 #property strict
 #include <Trade/Trade.mqh>
 
@@ -175,19 +175,19 @@ void OnTick()
       ulong tk;
       if(SelPos(magic,tk)){
          long type=PositionGetInteger(POSITION_TYPE);
-         double entry=PositionGetDouble(POSITION_PRICE_OPEN), curSL=PositionGetDouble(POSITION_SL), newSL;
+         double entry=PositionGetDouble(POSITION_PRICE_OPEN), curSL=PositionGetDouble(POSITION_SL), curTP=PositionGetDouble(POSITION_TP), newSL;
          if(type==POSITION_TYPE_BUY){
             if(bid>g_extreme[i]||g_extreme[i]==0) g_extreme[i]=bid;
             newSL=curSL;
             if(BreakevenR>0 && bid-entry>=BreakevenR*StopDistance) newSL=MathMax(newSL,entry);
             if(TrailR>0) newSL=MathMax(newSL,g_extreme[i]-TrailR*StopDistance);
-            if(newSL>curSL+_Point){ trade.SetExpertMagicNumber(magic); trade.PositionModify(tk,NormalizeDouble(newSL,_Digits),0.0); }
+            if(newSL>curSL+_Point){ trade.SetExpertMagicNumber(magic); trade.PositionModify(tk,NormalizeDouble(newSL,_Digits),curTP); }
          } else if(type==POSITION_TYPE_SELL){
             if(ask<g_extreme[i]||g_extreme[i]==0) g_extreme[i]=ask;
             newSL=curSL;
             if(BreakevenR>0 && entry-ask>=BreakevenR*StopDistance) newSL=(curSL==0)?entry:MathMin(newSL,entry);
             if(TrailR>0){ double ts=g_extreme[i]+TrailR*StopDistance; newSL=(curSL==0)?ts:MathMin(newSL,ts); }
-            if(curSL==0 || newSL<curSL-_Point){ trade.SetExpertMagicNumber(magic); trade.PositionModify(tk,NormalizeDouble(newSL,_Digits),0.0); }
+            if(curSL==0 || newSL<curSL-_Point){ trade.SetExpertMagicNumber(magic); trade.PositionModify(tk,NormalizeDouble(newSL,_Digits),curTP); }
          }
          continue; // one position per session
       }
