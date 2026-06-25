@@ -33,6 +33,19 @@ Unchanged from corrected v2: **US ORB (16:00, 15m, 50pt stop, vol-confirmed) + V
 trend-pullback, both hard 4R take-profit**, 1 trade/day each, EOD-flat, Fridays on,
 risk ~1.0%. **~39% pass in 4 weeks (~34% in 3, ~47% in 8)**, blow-up 40-47%.
 
+## Second instrument: GOLD (XAUUSD, 22yr M1) — uncorrelated but NO durable edge
+- Gold daily returns are **uncorrelated with NAS** (+0.05) — exactly what stacking needs.
+- The true minute-aligned **NAS+Gold combo cuts blow-up hard** (4wk 52%→31%) but **does
+  not raise 4-week pass** (39% vs NAS 41%): combined daily Sharpe only 0.04→0.046. Two
+  instruments is far short of the ~8 uncorrelated edges needed for Sharpe ~0.4.
+- **The 22-year history is decisive: gold has NO durable intraday edge.** Every signal
+  (ORB at 10:00/15:30/16:00, pullback, long-only, fade) is **negative over 2010-2026**
+  (-0.03 to -0.05R, most 3-year blocks negative). The +0.089R I first saw was only
+  2023-25 — a regime fluke. The long data prevented recommending a fluke (same class of
+  error as the earlier engine bugs).
+- Net: gold can't supply a reliable second edge. The combo's lower blow-up came from
+  adding a ~zero-edge uncorrelated stream (variance down, no durable drift, drags long-run).
+
 ## The only real ways past ~40%
 - A **different instrument** with M1 data (FX, gold, another index) to find a second
   *uncorrelated* edge to stack — the one lever that raises daily Sharpe. Need the data.

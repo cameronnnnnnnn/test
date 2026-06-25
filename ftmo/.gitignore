@@ -10,3 +10,4 @@ xau_full/*.txt
 xau_full/**/*.txt
 m1_nas/*.csv
 data_v2/
+data_v3/
