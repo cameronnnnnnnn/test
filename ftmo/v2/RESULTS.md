@@ -21,6 +21,12 @@ OOS and every year 2022-25), per-trade risk **1.0%**:
 
 - **80% is now reached at ~4 weeks** (81% / 2% blow) — it was unreachable at any
   deadline with the earlier breakout-only approach.
+- **Confidence band (walk-forward + bootstrap, `walkforward.py`):** the 81%/4-week
+  headline has a **90% bootstrap CI of ~73–87%**. Re-optimizing the key params on each
+  expanding in-sample block and scoring the *unseen* next block gives **mean 77% OOS**
+  (range 59–91% by regime), with a modest **~7pp in-sample→OOS overfit gap**. The
+  re-optimized stop/fade params matched the fixed choice in 4 of 5 folds — so the
+  config is not cherry-picked. Plan for **~75–80% typical, ~60% in a bad regime.**
 - **>80% in <3 weeks is still not reached** (~67%): that corner needs daily Sharpe
   ~1.0 and we have ~0.37. The 3-week number nearly doubled (32%→67%).
 - **Daily cap (3%) drives sizing:** 3 trades/day, so keep r ≤ ~1.0% — three full stops
