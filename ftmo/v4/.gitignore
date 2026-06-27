@@ -1,0 +1,6 @@
+data_v2/
+data_v3/
+*.npz
+*.pkl
+__pycache__/
+*.png
