@@ -66,3 +66,19 @@ NAS ORB+pullback, 4R TP, r=1.0% (~41%/4wk, ~47% blow).
 
 `>50%/4wk is not attainable on NAS100 alone under a 3% daily cap.` This is the honest
 result after intraday, ensemble and swing searches, with the engine bugs removed.
+
+## Monthly-pass / barrier-math (per the prop-firm-math video)
+Reframed for MONTHLY (4-week) pass rate (WR irrelevant), with the convex payoff in mind.
+- **Barrier math (synthetic, definitive):** a clean 1:1 strategy sized to the daily-cap
+  edge (r=2.5%) crosses **>50% monthly pass only at WR>=~54-55%** (expR ~+0.10R):
+  WR50%->40%, WR55%->57%, WR60%->68%, WR65%->85%. So >50%/4wk REQUIRES WR~55% at 1:1.
+- **NAS reality:** the best 1:1 NAS entry caps at **WR ~53.5%** (ORB o16:30 s80 / or60 s50),
+  and real intraday variance (EOD exits + winner MAE) exceeds the clean synthetic, so it
+  yields only ~24% at high risk. Pushing risk to the cap just blows up (asymmetric rules:
+  consistency + min-4-days + 3% daily make the barrier sub-50% even at zero-EV).
+- **Best honest monthly pass:** ORB+pullback 4R-TP, r=1% -> **~41% pass, median 8 days**
+  (median <4wk MET); r=0.75% -> 36% / 27% blow. >50%/4wk NOT reachable on NAS/Gold.
+- **Convex payoff (the video's real point) HOLDS:** even ~40% pass is strongly net +EV
+  (fee capped ~$89, payout realized) ~ +$400-550 per attempt, ~$5k/yr over ~13 attempts.
+  Median pass time is well under 4 weeks; only the >50% pass-rate target is out of reach
+  under FTMO's 3% daily cap + 10% target + consistency.
