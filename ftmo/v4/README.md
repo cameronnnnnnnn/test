@@ -38,6 +38,24 @@ fee-refundable attempts.
   Hedging account, US100/NAS100 chart, M1, server time EET/EEST.
 - `engine.py`/`ftmo.py`/`strategies.py`/`data.py`/`run.py` — bug-fixed core (copied).
 
+## Funded phase (`funded_phase.py`)
+Different objective: steady monthly profit, not racing +10%. Same 3% daily / 10%
+overall limits, no profit target. Best config = the 4R combo (only positive-EV one)
++ a **monthly profit-lock** (stop trading the month once +3% is banked → lock it green).
+
+| risk | P(month ≥3%) | blow | mean/mo | use |
+|---|---|---|---|---|
+| 0.25% | 42% | **0%** | +0.5% | max preservation |
+| **0.35%** | **53%** | **1.8%** | +0.5% | **recommended (keep the account)** |
+| 0.50% | 63% | 11% | +0.6% | more 3%-months, real blow risk |
+| 0.75% | 68% | 24% | +0.6% | aggressive (likely to lose the account) |
+
+**Your target of ≥90% of months ≥3% is NOT achievable on NAS100.** It needs monthly
+Sharpe ~3 (daily ~0.7); NAS has ~0.05. The mean monthly return caps ~+1–2%, *below* the
+3% target, and high-WR/low-RR configs are net-negative after spread. Honest best is
+~53% of months ≥3% at a preservation-safe risk. Your 2.45% break-even is reached in
+~2–3 months, then net profit — the plan works, just not at 90%/3% consistency.
+
 ## Honest caveats
 - Edge is thin (+0.069R) and NAS-bull-skewed; ~44% blow-up at r=1% — size as risk
   capital and lean on the convex payoff over many attempts, not one.
