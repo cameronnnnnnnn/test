@@ -56,6 +56,18 @@ Sharpe ~3 (daily ~0.7); NAS has ~0.05. The mean monthly return caps ~+1–2%, *b
 ~53% of months ≥3% at a preservation-safe risk. Your 2.45% break-even is reached in
 ~2–3 months, then net profit — the plan works, just not at 90%/3% consistency.
 
+### Withdrawal-maximization (`withdraw_phase.py`) — re: the prop-firm heatmap
+The video's heatmap (0.5R + dd_frac sizing) is **TOPSTEP** (zero-EV toys, trailing DD,
+NO 3% daily cap). On NAS/FTMO it **inverts**: NAS's tight-TP (0.5R) is *negative*-EV
+after spread, and `dd_frac` sizing breaches the 3% daily cap. So the **opposite** wins —
+the positive-EV **4R combo at LOW fixed risk** maximizes money extracted. The *framing*
+(optimize withdrawals via the convex payoff, low risk) is right; the geometry isn't.
+
+**Recommended funded policy:** 4R combo, **r=0.5%**, withdraw profit above a **5–10%
+buffer** (keep cushion for survival). Result: **~16–22% withdrawn per funded year**;
+~20–31% of accounts survive a year, the rest blow but keep what was withdrawn, and
+re-passing costs only the fee. ~16%+/yr >> your 2.45% break-even → net profitable.
+
 ## Honest caveats
 - Edge is thin (+0.069R) and NAS-bull-skewed; ~44% blow-up at r=1% — size as risk
   capital and lean on the convex payoff over many attempts, not one.
