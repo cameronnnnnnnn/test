@@ -46,6 +46,18 @@ risk ~1.0%. **~39% pass in 4 weeks (~34% in 3, ~47% in 8)**, blow-up 40-47%.
 - Net: gold can't supply a reliable second edge. The combo's lower blow-up came from
   adding a ~zero-edge uncorrelated stream (variance down, no durable drift, drags long-run).
 
+## Gold-specific strategies (different styles) — also no durable edge
+Tried gold-native styles, not just the US-open ORB, scanned over 2010-2026:
+Asian-range breakout (cont) ~0.00R (2/5 blocks +), Asian fade -0.08 (0/5),
+trend-continuation -0.03 (1/5), counter-trend -0.03 (0/5). **None durable.** Gold
+is intraday-efficient in OHLCV across every family tested (8+).
+
+**Mix-and-match verdict:** with no gold edge, the combo can only reduce variance. At
+matched risk the combo edges NAS (37% vs 34% at r=0.75%), but 3 trades/day caps it at
+~0.75% (above that, 3 losers breach the 3% daily cap), while NAS-only at r=1% reaches
+**41%/4wk**. So mixing does not beat NAS-only on 4-week pass. Best deployable stays
+NAS ORB+pullback, 4R TP, r=1.0% (~41%/4wk, ~47% blow).
+
 ## The only real ways past ~40%
 - A **different instrument** with M1 data (FX, gold, another index) to find a second
   *uncorrelated* edge to stack — the one lever that raises daily Sharpe. Need the data.
