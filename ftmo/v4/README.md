@@ -83,6 +83,21 @@ accounts pull the average up). Both still beat break-even. **Recommended:** r=0.
 buffer 5–10% (balances avg vs median vs lifespan). Higher buffer = higher *average* via
 longer survival, lower median.
 
+### Two-phase funded (`two_phase.py`) — break even fast, then grind safe
+Race to break-even (so the rest is house money), then de-risk:
+
+| config | reach BE | blow before BE | days to BE | lifetime ext | net EV |
+|---|---|---|---|---|---|
+| single r=0.4% buf10% | 55% | 45% | 83 | 29.3% | +$3,630 |
+| **2-phase r1=0.6%→r2=0.4%** | **75%** | **25%** | **3** | 25.3% | **+$3,088** |
+| 2-phase r1=1.0%→r2=0.4% | 67% | 33% | 1 | 23.5% | +$2,838 |
+
+**Recommended: Phase 1** = 4R combo at **r=0.6%**, withdraw *all* profit daily until +2.5%
+(break-even) is banked (~3 days, ~75% succeed). **Phase 2** = 4R combo at **r=0.4%** with a
+**10% profit buffer**, grind for lifetime extraction. Vs single-phase: break-even in **3
+days not 83**, and **half the net-loss rate** (25% vs 45%), for ~$540 less average EV.
+**r1 must stay ≤1%** — above that, two losses in a day breach the 3% daily cap.
+
 ## Honest caveats
 - Edge is thin (+0.069R) and NAS-bull-skewed; ~44% blow-up at r=1% — size as risk
   capital and lean on the convex payoff over many attempts, not one.
