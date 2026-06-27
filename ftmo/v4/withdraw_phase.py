@@ -65,22 +65,42 @@ def main():
     print("\n  cell = avg cumulative withdrawal % (survival% over 12mo). Compare the R:R rows.")
 
     print("\n" + "="*78)
-    print("VERDICT — does the heatmap transfer to FTMO? NO on geometry, YES on framing.")
+    print("LIFETIME EXTRACTION per funded account (run to death) — the video's metric")
+    print("  (video: $8900/$50k = 17.8% lifetime avg). NAS/FTMO 4R combo:")
     print("="*78)
-    print(" * The video's heatmap is TOPSTEP (zero-EV toys, trailing DD, NO 3% daily cap):")
-    print("   there low R:R (0.5R, high WR) wins. On NAS/FTMO it INVERTS, because NAS's")
-    print("   tight-TP is NEGATIVE-EV after spread and dd_frac sizing breaches the 3% daily")
-    print("   cap. Best NAS/FTMO geometry is the POSITIVE-EV 4R combo at LOW fixed risk.")
-    print(" * Recommended funded policy (4R combo, withdraw above a profit buffer):")
     dR, dmin, _ = days_for(df, ad, 4.0)
-    for r in [0.005, 0.0075]:
-        for buf in [0.05, 0.10]:
-            a12,s12 = withdraw_mc(dR,dmin,("fixed",r),months=12,buffer=buf)
-            a24,s24 = withdraw_mc(dR,dmin,("fixed",r),months=24,buffer=buf)
-            print(f"     r={r*100:.2f}% buffer={buf*100:.0f}%: ~{a12:.0f}% wd/12mo (surv {s12:.0f}%), "
-                  f"~{a24:.0f}% wd/24mo (surv {s24:.0f}%)")
-    print(" * Convex payoff: accounts that blow still kept their withdrawals; re-pass = fee.")
-    print("   ~16-22% extracted per funded year >> your 2.45% break-even -> net profitable.")
+    print("  r      buffer   avg%   median%   avg_life(mo)")
+    best = None
+    for r in [0.004, 0.005, 0.0075]:
+        for buf in [0.0, 0.05, 0.10, 0.15]:
+            a, med, life, s = lifetime(dR, dmin, r, buf)
+            print(f"  {r*100:.2f}%   {buf*100:2.0f}%    {a:5.1f}   {med:5.1f}     {life:5.1f}")
+            if best is None or a > best[0]: best = (a, r, buf)
+    avg = best[0]
+    print(f"\n  Best avg lifetime extraction: {avg:.0f}% at r={best[1]*100:.2f}%, buffer={best[2]*100:.0f}%.")
+    print( "  YOUR PLAN EV (FTMO $15k, 90/10 split, ~2.45 challenges @ $135 to fund):")
+    fee = 2.45*135; payout = avg/100 * 15000 * 0.9
+    print(f"    cost to fund ~${fee:.0f} ; avg payout/funded ~${payout:.0f} (you keep 90%)")
+    print(f"    NET ~${payout-fee:.0f} per funded account. Break-even is ~2.45% extraction;")
+    print(f"    avg extraction ~{avg:.0f}% -> strongly net +EV. (avg is right-skewed: median lower.)")
+    print(" NOTE: heatmap geometry (0.5R + dd_frac) does NOT transfer (NAS tight-TP is -EV,")
+    print("       dd_frac breaches the 3% daily cap). Use the +EV 4R combo at LOW fixed risk.")
+
+def lifetime(dR, dmin, r, buffer, N=30000, cap_months=60, block=5, seed=0):
+    rng = np.random.default_rng(seed); nD = len(dR); H = cap_months*MONTH
+    nb = int(np.ceil(H/block))
+    idx = ((rng.integers(0,nD,size=(N,nb))[:,:,None]+np.arange(block)[None,None,:])%nD).reshape(N,-1)[:,:H]
+    R_, Rmin = dR[idx], dmin[idx]
+    E = np.ones(N); alive = np.ones(N, bool); wd = np.zeros(N); life = np.zeros(N, int)
+    for t in range(H):
+        rt = R_[:,t]; rmin = Rmin[:,t]
+        dead = alive & (((rmin*r) <= -DAILY) | (E*(1+rmin*r) <= FLOOR))
+        life = np.where(alive & dead, t, life); alive &= ~dead
+        E = np.where(alive, E*(1+rt*r), E)
+        if (t+1) % MONTH == 0:
+            take = np.where(alive & (E > 1.0+buffer), E-(1.0+buffer), 0.0); wd += take; E -= take
+    life = np.where(alive, H, life)
+    return wd.mean()*100, np.median(wd)*100, (life/MONTH).mean(), alive.mean()*100
 
 if __name__ == "__main__":
     main()

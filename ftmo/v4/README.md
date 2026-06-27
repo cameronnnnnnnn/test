@@ -63,10 +63,25 @@ after spread, and `dd_frac` sizing breaches the 3% daily cap. So the **opposite*
 the positive-EV **4R combo at LOW fixed risk** maximizes money extracted. The *framing*
 (optimize withdrawals via the convex payoff, low risk) is right; the geometry isn't.
 
-**Recommended funded policy:** 4R combo, **r=0.5%**, withdraw profit above a **5–10%
-buffer** (keep cushion for survival). Result: **~16–22% withdrawn per funded year**;
-~20–31% of accounts survive a year, the rest blow but keep what was withdrawn, and
-re-passing costs only the fee. ~16%+/yr >> your 2.45% break-even → net profitable.
+**The right metric is TOTAL LIFETIME extraction per funded account** (the video's
+$8,900/$50k = 17.8% is a lifetime average, not monthly). NAS/FTMO 4R combo, run to
+account death:
+
+| risk | buffer | avg lifetime payout | median | avg life |
+|---|---|---|---|---|
+| 0.40% | 0% | **17.7%** | 10.3% | 6.6 mo |
+| 0.40% | 10% | **29.4%** | 7.7% | 16 mo |
+| 0.40% | 15% | **34.1%** | 4.6% | 20 mo |
+
+So NAS/FTMO **matches or beats** the video's 17.8%. **Your plan EV** (FTMO $15k, 90/10
+split, ~2.45 challenges @ $135 to fund ≈ $331): avg payout/funded ≈ **$4,600** (you keep
+90%) → **net ≈ +$4,300 per funded account**. Break-even is ~2.45% extraction; you average
+~17–34% → **strongly net +EV**.
+
+**Caveat — the average is right-skewed.** Median account extracts ~5–10% (a few long-lived
+accounts pull the average up). Both still beat break-even. **Recommended:** r=0.4–0.5%,
+buffer 5–10% (balances avg vs median vs lifespan). Higher buffer = higher *average* via
+longer survival, lower median.
 
 ## Honest caveats
 - Edge is thin (+0.069R) and NAS-bull-skewed; ~44% blow-up at r=1% — size as risk
