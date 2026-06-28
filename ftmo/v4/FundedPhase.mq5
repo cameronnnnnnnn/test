@@ -3,12 +3,13 @@
 //|   FTMO $15k FUNDED phase — converged 3-setup combo                |
 //|   (optimized for net banked $/month; see ftmo/v4/FUNDED_RESULTS.md)|
 //|                                                                   |
-//|   A) US-open ORB  : 16:00 server, 30-min range, 60pt stop, 3R TP, |
+//|   A) US-open ORB  : 16:00 server, 30-min range, 60pt stop, 6R TP, |
 //|      volume-confirmed, stop -> BREAKEVEN after +1R.               |
-//|   B) EU-open ORB  : 11:00 server, 30-min range, 60pt stop, 3R TP, |
+//|   B) EU-open ORB  : 11:00 server, 30-min range, 60pt stop, 6R TP, |
 //|      volume-confirmed, stop -> BREAKEVEN after +1R.               |
 //|   C) VWAP pullback: buy dips to the US-session VWAP in an uptrend |
-//|      (mirror short), 40pt stop, 4R TP, 3R TRAILING stop.          |
+//|      (mirror short), 40pt stop, 8R TP, 3R TRAILING stop.          |
+//|   (TPs raised to 6R/8R in v1.2 — fat-tail capture, +19% banked.)  |
 //|                                                                   |
 //|   One trade/day per setup; hard TP set at entry (broker), SL is   |
 //|   trailed/moved to BE live; flat 22:55 server. Risk ~0.67%/trade  |
@@ -20,7 +21,7 @@
 //|   This EA only trades; it does not move money. Backtest first.    |
 //+------------------------------------------------------------------+
 #property copyright "FTMO research — funded phase"
-#property version   "1.10"
+#property version   "1.20"
 #property strict
 #include <Trade/Trade.mqh>
 
@@ -34,7 +35,7 @@ input int    A_Hour          = 16;     // US cash open hour (server EET)
 input int    A_Min           = 0;
 input int    A_ORMinutes     = 30;     // opening-range length
 input double A_StopPoints    = 60.0;
-input double A_TP_R          = 3.0;    // hard take-profit (R)
+input double A_TP_R          = 6.0;    // hard take-profit (R) — 6R captures the fat tail
 input double A_BE_R          = 1.0;    // move stop to breakeven after +this many R (0=off)
 input bool   A_VolFilter     = true;   // require breakout bar volume > OR average
 
@@ -44,7 +45,7 @@ input int    B_Hour          = 11;     // EU morning (server EET ~= 04:00 ET)
 input int    B_Min           = 0;
 input int    B_ORMinutes     = 30;
 input double B_StopPoints    = 60.0;
-input double B_TP_R          = 3.0;
+input double B_TP_R          = 6.0;
 input double B_BE_R          = 1.0;
 input bool   B_VolFilter     = true;
 
@@ -53,7 +54,7 @@ input bool   UseC            = true;
 input int    C_SessHour      = 16;     // VWAP session start hour (server) = US open
 input int    C_SessMin       = 0;
 input double C_StopPoints     = 40.0;
-input double C_TP_R          = 4.0;    // hard take-profit (R)
+input double C_TP_R          = 8.0;    // hard take-profit (R) — pullback runs to 8R
 input double C_TrailR        = 3.0;    // trailing stop, this many R behind the extreme (0=off)
 input double C_Buf           = 8.0;    // dip within this many points of VWAP
 input int    C_TrendBars     = 20;     // VWAP slope lookback (bars)
