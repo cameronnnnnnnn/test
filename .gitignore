@@ -3,3 +3,4 @@ bun.lockb
 *.npz
 __pycache__/
 *.pyc
+*.png
