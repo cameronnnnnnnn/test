@@ -11,6 +11,12 @@ edges.** The rigorous ceiling is ~44% in 20 days (~66% even if you allow 90 days
 The reasons are structural and are documented below with numbers. The best *honest*
 strategy the loop produced is in "Deliverable" at the bottom.
 
+> **Resolution (chosen direction: pass% over speed).** The 20-day clock — not the
+> signal — was the binding constraint. FTMO 1-Step has no hard time limit, so running
+> to completion lifts the OOS pass rate to **~58–59% at ~13–17 day median (1.0% risk)**
+> or **~70–77% at ~40–53 day median (0.5% risk)**. Shipped as **`ChallengePhaseV2.mq5`**.
+> See "Iter 4" and "Shipped EA" below.
+
 ## Files
 - `features.py`  — look-ahead-free bar-level feature library (18 features): candle
   geometry/wicks, daily ATR + volatility regime, session-VWAP distance & slope,
@@ -88,3 +94,34 @@ from the challenge" is the **convex multi-account EV** already validated in
 `ftmo/v4/funded_pipeline.py`: each $135 challenge is +EV because the downside is capped
 at the fee and a pass is worth a funded account. Higher per-account pass is only bought
 with *time* (the 40–90 day paths above), not with a cleverer 20-day signal.
+
+## Iter 4 — pass-over-speed frontier (`iter4_frontier.py`) + shipped EA
+Chosen direction. Run-to-completion (no deadline), −2R daily breaker, 6R runner combo,
+out-of-sample test days. Lower per-trade risk → higher pass (less blow), longer median:
+
+| risk  | pass% | blow% | median time |
+|-------|-------|-------|-------------|
+| 0.25% | ~68%  | **3.9%** | ~85d (much still grinding → ~90%+ asymptotic) |
+| 0.375%| ~78%  | 12.5% | ~57d |
+| 0.50% | ~77%  | 20.5% | ~39d  ← safe knee |
+| 0.75% | ~63%  | 36.5% | ~19d |
+| **1.00%** | **~59%** | 40.9% | **~13d**  ← fast knee (chosen) |
+
+Robust across periods (1.0%: 57.9% all-data / 59.1% OOS). The **CUSUM leg was tested
+and found redundant** (ORB+VW alone reproduces it: 57.9% vs 58.4%), so the EA omits it.
+
+### Shipped EA — `ChallengePhaseV2.mq5`
+Two setups: **US-open ORB** (16:30 server, 15-min range, 50pt stop, 6R, BE@1R, enter
+only ≥24 min after open) + **VWAP pullback** (40pt stop, hard 6R TP). **−2R daily
+circuit breaker** halts *new* entries once the day is down 2R but lets open winners run
+(distinct from the catastrophe `MaxDailyLossPct` flatten kept just under the 3% cap).
+Default **1.0% risk → ~59% pass / ~13-day median** (the chosen fast knee); set
+RiskPercent=0.5 for the ~77% / ~40-day safe knee. Requires a hedging account; EET/EEST
+server time. Mirrors the `ftmo/v4/FundedPhase.mq5` scaffold (sizing, BE-preserves-TP,
+EOD flatten). **Backtest in the MT5 Strategy Tester before going live.**
+
+### How to actually profit (given ~59% per attempt)
+Each $135 challenge is **convex**: downside capped at the fee, a pass = a funded
+account worth far more. At ~59% pass in ~13-day median you recycle capital fast — the
+multi-account EV model in `ftmo/v4/funded_pipeline.py` applies directly. Want fewer
+wasted fees instead of speed? Run RiskPercent=0.5 (~77% pass, fewer blows, ~40 days).
