@@ -4,3 +4,4 @@ bun.lockb
 __pycache__/
 *.pyc
 *.png
+*.pkl
