@@ -1,0 +1,15 @@
+# Large raw data — kept locally, never committed
+data/*.csv
+data/*.zip
+data/*.parquet
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Generated artifacts (kept out of git; logs/results tracked selectively)
+*.pkl
+*.feather
