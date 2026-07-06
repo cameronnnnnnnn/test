@@ -1,0 +1,178 @@
+<title>Topstep NAS100 — Honest Verdict</title>
+<style>
+  :root{
+    --paper:#f6f5f1; --ink:#161c24; --panel:#ffffff; --line:#e2ddd2;
+    --muted:#6b6f77; --soft:#8a8f98;
+    --accent:#c07f1e;        /* caution amber */
+    --accent-soft:#f0e2c6;
+    --pass:#2f7d5b; --fail:#bb463c; --neutralbar:#b9b3a6;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0f141b; --ink:#e8e6e0; --panel:#171d26; --line:#28303b;
+      --muted:#9aa0a8; --soft:#727882;
+      --accent:#e0a63f; --accent-soft:#3a2f18;
+      --pass:#4faf82; --fail:#e0685c; --neutralbar:#495260;
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#f6f5f1; --ink:#161c24; --panel:#ffffff; --line:#e2ddd2;
+    --muted:#6b6f77; --soft:#8a8f98; --accent:#c07f1e; --accent-soft:#f0e2c6;
+    --pass:#2f7d5b; --fail:#bb463c; --neutralbar:#b9b3a6;
+  }
+  :root[data-theme="dark"]{
+    --paper:#0f141b; --ink:#e8e6e0; --panel:#171d26; --line:#28303b;
+    --muted:#9aa0a8; --soft:#727882; --accent:#e0a63f; --accent-soft:#3a2f18;
+    --pass:#4faf82; --fail:#e0685c; --neutralbar:#495260;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:56px 24px 80px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(30px,5.2vw,46px);
+    line-height:1.08;margin:0 0 18px;text-wrap:balance;letter-spacing:-.01em}
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{font-size:19px;color:var(--muted);max-width:62ch;margin:0 0 8px}
+  .rule{height:1px;background:var(--line);border:0;margin:34px 0}
+  h2{font-family:var(--serif);font-size:23px;font-weight:600;margin:0 0 4px;
+    letter-spacing:-.01em}
+  .sub{color:var(--soft);font-size:14px;margin:0 0 18px}
+  /* verdict bars */
+  .bars{display:flex;flex-direction:column;gap:16px;margin:6px 0 4px}
+  .bar-row{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:14px}
+  .bar-lab{font-size:14px;color:var(--muted)}
+  .bar-track{background:color-mix(in srgb,var(--line) 60%,transparent);
+    border-radius:3px;height:26px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px}
+  .bar-val{font-family:var(--mono);font-variant-numeric:tabular-nums;
+    font-size:15px;text-align:right;font-weight:600}
+  .cap{font-size:13px;color:var(--soft);margin-top:12px}
+  /* tiles */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:14px;margin:8px 0}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px}
+  .tile .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--soft);margin:0 0 8px}
+  .tile .v{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1}
+  .tile .n{font-size:12.5px;color:var(--muted);margin-top:7px}
+  /* table */
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:460px}
+  th,td{padding:10px 14px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--soft);font-weight:500}
+  tbody tr:last-child td{border-bottom:0}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .fail{color:var(--fail);font-weight:600}
+  .pass{color:var(--pass);font-weight:600}
+  .callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));
+    border-radius:10px;padding:18px 20px;font-size:15px}
+  .callout b{color:var(--accent)}
+  ul.clean{margin:6px 0 0;padding-left:20px}
+  ul.clean li{margin:8px 0;font-size:15px;color:var(--ink)}
+  ul.clean li span{color:var(--muted)}
+  footer{margin-top:44px;font-size:12.5px;color:var(--soft);
+    font-family:var(--mono);line-height:1.7}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;
+    letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:5px;
+    border:1px solid var(--line);color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Topstep 50K Combine · NAS100 · MNQ micros · 2019–2025</p>
+  <h1>The strategy can pass ~30% of the time — <em>and so can a coin flip.</em></h1>
+  <p class="lede">Under the confirmed rules and the hard no-overnight constraint, no
+  robust, causal, cost-surviving intraday edge exists on this instrument. Every
+  strategy I built lands on top of a zero-skill benchmark. Here is the honest math.</p>
+
+  <hr class="rule">
+
+  <h2>Pass probability, out-of-sample</h2>
+  <p class="sub">10,000-path Monte Carlo, contiguous-calendar sampling, exact Topstep rules.</p>
+  <div class="bars">
+    <div class="bar-row">
+      <span class="bar-lab">Best strategy (OOS)</span>
+      <span class="bar-track"><span class="bar-fill" style="width:30%;background:var(--accent)"></span></span>
+      <span class="bar-val">~30%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-lab">Zero-edge control</span>
+      <span class="bar-track"><span class="bar-fill" style="width:30%;background:var(--neutralbar)"></span></span>
+      <span class="bar-val">~30%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-lab">What "an edge" needs</span>
+      <span class="bar-track"><span class="bar-fill" style="width:70%;background:color-mix(in srgb,var(--pass) 55%,transparent)"></span></span>
+      <span class="bar-val">70%+</span>
+    </div>
+  </div>
+  <p class="cap">A mean-<b>zero</b> daily P&amp;L — pure noise, no skill — passes 20–30% under these
+  rules, because a $3,000 target against a $2,000 trailing stop caps a driftless process near there.
+  The strategy does not clear that line. The pass is <b>low-ruin luck, not skill.</b></p>
+
+  <hr class="rule">
+
+  <h2>The headline numbers</h2>
+  <div class="tiles">
+    <div class="tile"><p class="k">Pass / attempt</p><div class="v">~25–30%</div>
+      <p class="n">Matches the zero-edge control</p></div>
+    <div class="tile"><p class="k">Per-day edge CI</p><div class="v">spans 0</div>
+      <p class="n">Every year, train &amp; test</p></div>
+    <div class="tile"><p class="k">Expected resets</p><div class="v">~3.3</div>
+      <p class="n">≈ $160+ in $49 fees</p></div>
+    <div class="tile"><p class="k">Time to pass</p><div class="v">1–8 mo</div>
+      <p class="n">Median 24–230 days by size</p></div>
+  </div>
+
+  <hr class="rule">
+
+  <h2>In-sample winners reverse out-of-sample</h2>
+  <p class="sub">Long-only strong-trend, sized at 3 MNQ. The overfitting signature in one table.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Config</th><th>TRAIN edge/day</th><th>TRAIN pass%</th><th>TEST edge/day</th><th>TEST pass%</th></tr></thead>
+      <tbody>
+        <tr><td>stop 25 / tgt 40</td><td class="num">+$1.92</td><td class="num pass">42.9%</td><td class="num fail">−$6.90 *</td><td class="num fail">0.0%</td></tr>
+        <tr><td>stop 30 / tgt 30</td><td class="num">+$1.37</td><td class="num">28.7%</td><td class="num fail">−$8.93 *</td><td class="num fail">0.0%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="cap">The best in-sample result (42.9%) is a mirage — the identical rule loses money with
+  statistical significance (<span style="font-family:var(--mono)">*</span> CI excludes zero) on unseen data.</p>
+
+  <hr class="rule">
+
+  <h2>Why: the one real drift is off-limits</h2>
+  <p class="lede" style="font-size:16px;max-width:64ch">On the Nasdaq, the reliably positive drift is
+  <b style="color:var(--ink)">overnight</b> — roughly half the total move and historically the larger
+  half. Topstep's <b style="color:var(--ink)">no-overnight rule bars us from harvesting it.</b> The
+  tradeable RTH drift is smaller, flips sign by regime (strongly negative in 2022), and is
+  indistinguishable from noise net of costs. This is a structural ceiling, not a tuning failure.</p>
+
+  <hr class="rule">
+
+  <h2>If you attempt it anyway</h2>
+  <div class="callout">
+    <ul class="clean">
+      <li><b>Size small:</b> ~2–3 MNQ, 25–40 pt stop, trend-filtered direction, flat by 3:10 CT.
+        <span>Maximizes the ~30% low-ruin odds; minimizes a Phase-1 ($50k→$52k) trailing stop-out.</span></li>
+      <li><b>Don't scale up for speed.</b> <span>Bigger size only raises blow-up; it never lifts pass% above the noise ceiling.</span></li>
+      <li><b>Treat a pass as luck, not income.</b> <span>A funded account then faces the same ~30% odds every payout cycle — the underlying process has no edge.</span></li>
+    </ul>
+  </div>
+
+  <footer>
+    <span class="tag">Data 2019-08-13 → 2025-12-31</span>
+    <span class="tag">6.38 yrs · 1,989 days</span>
+    <span class="tag">70/30 train-test</span><br>
+    Simulator validated on 4 hand-worked rule cases · CT = server − 8h (verified) ·
+    MNQ $2/pt, ~$2/RT costs · full report &amp; reproducible code in ./TopstepBot
+  </footer>
+</div>
