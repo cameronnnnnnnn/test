@@ -43,6 +43,7 @@ def build_all():
 
 def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
            cost=2.0,eod_hr=23, atr_stop=None, tp_R=None, lock_trig=None, lock_to=None,
+           partial_at=None, partial_frac=0.5, partial_be=True,
            # base validated filters (kept ON):
            rng_filter=True, vol_confirm=True,
            # the 10 NEW levers:
@@ -89,7 +90,7 @@ def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
             want = side
             if fail_rev and att==1: want = "flip"  # opposite of first signal
             pos=0;entry=0.0;stop_px=0.0;ext=0.0;exitR=None;mae=0.0
-            pyr=False; entry2=0.0; first_dir=0
+            pyr=False; entry2=0.0; first_dir=0; partial_done=False
             for k in range(used_from,len(sH)):
                 if pos==0:
                     Lc = sC[k]>=rhi if close_confirm else sH[k]>=rhi
@@ -125,6 +126,11 @@ def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
                     tp_px=entry+pos*tp_R*risk
                     if (pos>0 and sH[k]>=tp_px) or (pos<0 and sL[k]<=tp_px):
                         exitR=tp_R; exit_k=k; break
+                if partial_at is not None and not partial_done:   # scale out partial_frac at +partial_at R
+                    pp_px=entry+pos*partial_at*risk
+                    if (pos>0 and sH[k]>=pp_px) or (pos<0 and sL[k]<=pp_px):
+                        partial_done=True
+                        if partial_be: stop_px=max(stop_px,entry) if pos>0 else min(stop_px,entry)
                 ext=max(ext,sH[k]) if pos>0 else min(ext,sL[k])
                 curR=(pos*(sC[k]-entry))/risk
                 if pyramid and not pyr and curR>=2.0:
@@ -148,10 +154,14 @@ def orb_v4(DAYS,ctx,open_hr=16,range_min=30,stop_pts=60.0,be_at=1.0,trail_k=5.0,
                 if not fail_rev: break
                 else: continue
             if exitR is None: exitR=(pos*(sC[-1]-entry))/risk
-            units=2 if pyr else 1
-            totR=exitR + (exitR-2 if pyr else 0) - cost/risk*units
+            if partial_at is not None and partial_done:   # blend booked partial + remaining runner
+                grossR=partial_frac*partial_at + (1-partial_frac)*exitR
+                totR=grossR - cost/risk*(1+partial_frac)
+            else:
+                units=2 if pyr else 1
+                totR=exitR + (exitR-2 if pyr else 0) - cost/risk*units
             rows.append((totR,max(mae,0)/risk,day,pos))
-            if exitR>0: break
+            if (exitR>0 or partial_done): break
             used_from=exit_k+1
             if not fail_rev: break
     if not rows:

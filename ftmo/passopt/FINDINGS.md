@@ -61,3 +61,32 @@ backtest engine). Deploying this requires: (a) adding a causal daily-ATR-percent
 
 Scripts: harness.py, walkforward.py, mc_honest.py, causal_volcheck.py, validate_final.py,
 final_stress.py.
+
+---
+
+## Round 2 — exhaustive exit-management sweep (464 configs)
+
+Crossed **BE × hard-TP × trailing × partial scale-outs × stepped-lock × vol-regime × risk%**,
+ranked by ROBUST = min(worst-start-half over static & trailing floors). Multiprocessing sweep,
+then adversarial verification (block-bootstrap 10k × 3 seeds + perturbation plateau).
+
+**Findings**
+- **Top 25 configs all = 100% robust — every one uses the vol filter.** Exit management ALONE
+  (no vol filter) never reaches robustness; the trailing-floor worst-period stays broken. The
+  causal ATR-percentile vol gate remains the essential ingredient.
+- **Partials cut time-to-robust-pass roughly in HALF.** Plain config = 0.5% risk / ~8 months.
+  Adding a partial scale-out lets you run 0.75% risk and STAY 100% robust:
+  - **WINNER (fastest robust):** `vol≥0.5 + trailing 5R + partial(close 50% at +2R → move rest to
+    BE) + BE@1R + 0.75% risk` → ~100% pass under both floors, **~4.9 months**.
+  - The identical config *without* the partial drops to robust 84 at 0.75% risk → the partial is
+    exactly what buys back robustness at the higher (faster) risk.
+- **Verified plateau, not a spike:** vol 0.50–0.55 × partial 1.75–2.25 × risk 0.65–0.75 all
+  ~100%/~100%. Risk 0.85% breaks the trailing floor; 0.75% is the edge of the robust box.
+- Edge CIs graze zero on train, just exclude zero on test/full → still a LOW-RUIN + modest-edge
+  play, not a bulletproof-edge play.
+
+**Robust operating box:** vol threshold ≥ 0.50, risk ≤ 0.75%. Fastest ≈ 4.9 months (0.75% risk);
+safest ≈ 6 months (0.65% risk).
+
+**Deployment gap:** the MT5 EA needs (a) a causal ATR-percentile vol gate and (b) a partial
+scale-out (50% at +2R → BE). Neither is implemented yet.
