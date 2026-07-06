@@ -1,0 +1,28 @@
+{
+  "name": "FTMO $15k 1-Step — 95% static-floor config",
+  "instrument": "NAS100 / US100.cash (NASDAQ-100 CFD)",
+  "verified_pass_rate_static_floor": "95.9%",
+  "engine_config": {
+    "open_hrs": [15, 16],
+    "range_min": 30,
+    "side": "both",
+    "stop_pts": 80,
+    "be_at": 1.0,
+    "atr_regime": [0.5, 1.0],
+    "partial_at": 2.0,
+    "partial_frac": 0.5,
+    "partial_be": true,
+    "trail_k": 5.0,
+    "tp_R": null,
+    "risk_pct": 1.0,
+    "rng_filter": true,
+    "vol_confirm": true,
+    "eod_hr": 23
+  },
+  "plain_english": {
+    "entry": "Opening-range breakout on the 15:00 and 16:00 (server) sessions, 30-min range, both long and short. 80-point stop = 1R.",
+    "volatility_gate": "Only take a trade when the PRIOR day's ATR percentile is >= 0.50 (skip the lowest-volatility ~50% of days). Causal — no lookahead.",
+    "exit": "Breakeven stop at +1R. Scale out 50% at +2R and move the remaining 50% to breakeven. Trail the runner 5R behind its extreme. Flat by end of day (no overnight).",
+    "risk": "1.0% of balance per trade."
+  }
+}
