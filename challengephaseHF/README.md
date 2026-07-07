@@ -201,3 +201,25 @@ vulnerability — in a true risk-off month both could fade together. So: **52p r
 robustness leg with a thin, cost-sensitive edge. This is the first thing in the project that
 *helps* a stacked account — and it helps the floor, exactly as the "many uncorrelated legs"
 thesis predicts, just not the mean.
+
+## Can a risk-off / short leg hedge 52p's bad days? No — and the reason converges the project (`riskoff.py`)
+The long-biased add-ons share a risk-off vulnerability, so the ideal fix is a leg that PAYS when
+52p bleeds. NAS100's volatility asymmetry (down-moves are faster) makes a short-only breakdown,
+armed in a bearish / vol-expansion regime, the principled candidate. It fails, informatively:
+- **It is the opposite of a hedge.** Every short variant is *positively* correlated with 52p
+  (+0.12 to +0.31) and *loses* on 52p's worst-quintile days (−0.09 to −0.26R) while winning on
+  its best days. Because **52p's worst days are choppy / low-follow-through days, not directional
+  sell-offs** — and a short-momentum leg gets whipsawed on exactly those days. You cannot hedge a
+  momentum book's bad days with more momentum in either direction; they share the dependency.
+- **The regime filter hurts** (short|bear expR −0.04, test −0.15): 2022-25 "bearish" days were
+  mostly bear-market-rally / short-squeeze days, so shorting into them got crushed. Stacked
+  worst-fold barely moved (37→38-40%, inside the noise given negative OOS expR).
+
+**This closes the "raise the floor" thread.** 52p's floor is set by *choppy months* where every
+momentum leg (long and short, on NAS100) fails together. The only thing that would offset chop is
+a positive-EV **mean-reversion** edge — and every MR setup in the whole project (fades, RSI2,
+bbfade, vwap_fade, climax_fade) is net-negative after cost on NAS100. So the same-instrument floor
+is structural (~37% worst-fold). The one lever that genuinely raised it is a **different market's**
+momentum that doesn't share NAS100's chop — i.e. USDJPY (37→44%). Net convergence of the project:
+**mean ~52% (can't beat), floor ~37% same-instrument / ~44% with a cross-instrument decorrelator,
+and no cost-viable anti-momentum hedge exists to do better on the data available.**
