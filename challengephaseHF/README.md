@@ -78,3 +78,25 @@ blows 99% of the time no matter the risk level.
   runner strategy, feature-filtered entries, a −2R daily circuit breaker, and risk tuned to
   the deadline. That tops out around 44-47% in 20 days, and ~38% for the plain live combo.
   That remains the honest ceiling.
+
+## Follow-up: "you don't need edge, 0EV passes via variance" (`variance_play.py`)
+This is correct, and it is the deeper reason the higher-RR combo wins. A prop challenge is
+a first-passage bet; by optional stopping a driftless account reaches +10% before −10%
+about 50% of the time before the deadline even applies. Testing a synthetic **exactly-0EV**
+strategy (wr = 1/(1+RR)) across every variance structure under the full FTMO rules:
+
+- **A 0EV strategy passes ~38.6% in 20 days at the optimal structure** — the same as the
+  slightly-positive live combo. Edge is not required. The structure is.
+- **The optimal 0EV structure is the OPPOSITE of low-RR/high-WR:** RR≈4, win rate ≈20%,
+  ~1 trade/day, ~2% risk. Few big bets.
+- **Why:** one trade/day at high RR makes a losing day only −2%, under the 3% daily cap, so
+  ~0% of blows come from the daily limit. Low-RR/high-frequency hits the daily cap on
+  every bad cluster (98–100% of blows), which is why that portfolio blew 99% of the time.
+- **Sensitivity:** at the optimal structure, pass decays slowly with cost (0EV → 38.6%,
+  −0.03R → 36.9%, −0.05R → 34.3%). So the game is: get close to 0EV (small cost drag) AND
+  use the high-RR / low-frequency structure. The small +edge only adds a few points.
+
+So the corrected conclusion: the earlier "low-RR/high-WR fails" is right, but the deep
+reason is **structure**, not "no edge". The winning variance play is **few big bets (high
+RR, low frequency), stacked across uncorrelated setups** so added frequency does not
+concentrate daily-cap risk. That is exactly the v2/v3 direction, ceiling ~44–47% in 20 days.
