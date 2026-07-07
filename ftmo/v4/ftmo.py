@@ -99,6 +99,7 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         timeout_rate=(~passed & ~blown).mean(),
         blow_daily_share=(blow_daily.sum() / max(blown.sum(), 1)),
         med_days_to_pass=(np.median(t_pass[passed]) + 1 if passed.any() else np.nan),
+        mean_days_to_pass=(t_pass[passed].mean() + 1 if passed.any() else np.nan),
         final_equity_median=np.median(E),
     )
 
