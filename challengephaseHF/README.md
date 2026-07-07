@@ -120,3 +120,22 @@ decorrelation). So the monthly-pass ceiling on NAS100/FTMO is ~50% (the 0EV mart
 limit), realistically ~44–52% for this combo and floored near 38% in a bad month. The
 structure (high RR, low frequency, a few uncorrelated legs, −2R breaker) is what matters;
 the small edge just lifts it a few points above the 0EV floor.
+
+## Mix-and-match across instruments (`fx_mix.py`, `fx_fade.py`)
+Added EURUSD/GBPUSD/AUDUSD/USDJPY M1 (2021-2025) to test cross-instrument diversification.
+The premise is sound and the correlation is ideal: **NAS100 is ~0 correlated with every
+forex pair** (−0.02 to 0.04), far cleaner than stacking setups on one instrument. If forex
+had edge, it would genuinely smooth the account and lift the pass rate.
+
+But it does not. With ATR-scaled stops and real spread costs, **every forex setup is
+net-negative** — momentum (ORB/VWpull: EUR −0.066, GBP −0.069, AUD −0.184, JPY +0.007) and
+mean-reversion (fades: −0.04 to −0.16) alike. Only USDJPY momentum is ~0EV. So stacking
+forex onto the NAS100 combo **hurt** it: NAS100-only 54.9% (over common days) vs NAS100 +
+4 forex 35.9%. Same lesson a third time: **you cannot diversify away negative expectancy.**
+Perfect decorrelation plus no edge still drags the account down.
+
+Conclusion: **the NAS100 ChallengePhase52p combo remains the best (~52% all-data / ~44%
+OOS).** Cross-instrument diversification only helps once you have a genuinely positive-edge
+setup on the other instrument, and the standard intraday templates do not provide one on
+forex majors (they are efficiently priced relative to the spread). Finding real forex edge
+would need a different class of signal (carry, longer horizon, event-driven), not these.
