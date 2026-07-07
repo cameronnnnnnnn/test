@@ -139,3 +139,65 @@ OOS).** Cross-instrument diversification only helps once you have a genuinely po
 setup on the other instrument, and the standard intraday templates do not provide one on
 forex majors (they are efficiently priced relative to the spread). Finding real forex edge
 would need a different class of signal (carry, longer horizon, event-driven), not these.
+
+## Asian-range breakout + inventing NEW strategies (`asian_break.py`, `creative.py`, `combine_new.py`)
+Task: (a) test the classic Asian-range breakout, (b) *invent* genuinely new strategies rather
+than reuse known templates, (c) combine anything good with NAS100 — all with train/test +
+4-fold CV. **Result: one forex leg and one NAS100 seasonal survived honest scrutiny, and what
+they buy is a higher worst-regime FLOOR (37%→44%), not a higher mean.** The ~52% average
+monthly-pass ceiling is structural and did not break.
+
+### Classic Asian-range breakout (forex) — the one real edge is USDJPY (`asian_break.py`, `usdjpy_probe.py`)
+Overnight range over [range_start, London-open) server, break traded after, ATR-scaled stops,
+real spread. Across a window grid on all 4 majors, **only USDJPY has stable +OOS edge**: the
+Tokyo-session range (00:00-08:00 server = 22:00-06:00 GMT, the JPY's home hours), break after
+08:00, hard 3R, 0.30-ATR stop → **expR +0.077, PF 1.14, TRAIN +0.062 / TEST +0.109**. It is a
+genuine plateau (robust across break 07-09h and across the stop×TP geometry) and positive in
+4 of 5 years. Honest caveats: **thin vs cost** (≈0 EV at 2× spread) and **mostly long**
+(long +0.12 vs short +0.02) — it substantially rides the 2021-25 yen-carry uptrend, so the
+pure mechanical (short/cost-stressed) edge is only ~breakeven+. EUR/GBP/AUD breakouts are all
+net-negative (GBP's "+OOS" flips sign across the split = noise). Lesson: the Asian breakout
+works only where the instrument's own session actually moves it — JPY during Tokyo.
+
+### Five invented strategies (NAS100) — four fail, one seasonal survives (`creative.py`, `tom_probe.py`)
+Genuinely new signal structures, not the ORB/VWpull/fade/RSI templates:
+| invented strategy | idea | expR (all / train / test) | verdict |
+|---|---|---|---|
+| coil_break | volatility-compression → expansion breakout | −0.13 / −0.08 / −0.26 | fails |
+| climax_fade | fade extreme tick-volume + wide-range bar | −0.11 / −0.10 / −0.21 | fails |
+| sweep_reclaim | pre-open high/low stop-run + reclaim reversal | −0.05 / −0.08 / +0.01 | no edge |
+| xasset_orb | USDJPY risk-on/off filter on the NAS ORB | agree beaten by its disagree control | no lead-lag |
+| **tom_long** | long NAS at US open on turn-of-month (last day + first 3) | **+0.21 / +0.15 / +0.36** | **real seasonal** |
+
+The cross-asset filter is the instructive failure: its "agree" half is *beaten* by the
+"disagree" control, i.e. the split is random — there is no NAS/JPY intraday lead-lag to
+harvest. **tom_long** is the survivor: it beats an all-days-long baseline by **+0.145R** (so
+it is the turn-of-month seasonal, documented in the literature as month-end index/pension
+inflows — not just NAS beta), consistent across 2023/24/25. Caveats: only ~3 yrs / 144 trades,
+it failed the small late-2022 bear stub, and the window peaks at first-3-days.
+
+### Combining with NAS100 — the floor rises, the mean doesn't (`combine_new.py`)
+Both survivors are ~0 correlated with 52p (0.07, 0.11) and each other (−0.02) — ideal. Stacked
+on one FTMO account over the 764 common days (risk picked on TRAIN, pass on TEST + 4-fold CV):
+| combo | ALL pass | TEST pass | worst fold |
+|---|---|---|---|
+| 52p alone (NAS100) | 55.2% | 50.6% | **37.0%** |
+| 52p + USDJPY Tokyo | 53.3% | 49.9% | **44.2%** |
+| 52p + tom | 55.1% | 54.0% | 37.0% |
+| 52p + USDJPY + tom | 54.0% | 51.0% | 43.8% |
+
+- **+USDJPY** trades ~2 pts of *mean* for **+7 pts of worst-fold floor (37→44%)** — a
+  decorrelated positive leg smoothing the bad regime. That is the metric that matters if you
+  buy multiple challenge attempts (fewer catastrophic months).
+- **+tom** lifts OOS *mean* 51→54% but is flat on all-data/folds, so the gain is a
+  recent-bull tailwind (regime-dependent), consistent with its per-year profile.
+
+**Honest verdict: the ~52% mean ceiling is structural and does not break** — nothing lifts the
+average materially and durably. The genuine, defensible win is **worst-regime robustness**:
+USDJPY's decorrelation raises the floor ~7 points. Both add-ons are **long-biased trend-riders**
+(yen-carry uptrend, equity bull), so their day-to-day 0-correlation hides a shared risk-off
+vulnerability — in a true risk-off month both could fade together. So: **52p remains the core**;
+`tom_long` is a free NAS100-native lift in bull regimes; USDJPY-Tokyo is a separate-symbol
+robustness leg with a thin, cost-sensitive edge. This is the first thing in the project that
+*helps* a stacked account — and it helps the floor, exactly as the "many uncorrelated legs"
+thesis predicts, just not the mean.
