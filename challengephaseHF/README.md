@@ -100,3 +100,23 @@ So the corrected conclusion: the earlier "low-RR/high-WR fails" is right, but th
 reason is **structure**, not "no edge". The winning variance play is **few big bets (high
 RR, low frequency), stacked across uncorrelated setups** so added frequency does not
 concentrate daily-cap risk. That is exactly the v2/v3 direction, ceiling ~44–47% in 20 days.
+
+## Acting on it: the best high-RR uncorrelated combo (`hf2_portfolio.py`, `hf2_search.py`)
+Rebuilt the battery at HIGH RR across sessions + mechanisms. At high RR the setups turn
+slightly positive-EV (EU-ORB +0.13, VWpull +0.10, US-ORB +0.09, even gaprev +0.05 vs
+−0.028 at low RR). Correlations are mostly clean; same-session pairs correlate (US-ORB↔VWpull
+0.67, US-ORB↔IB 0.70). A 4-fold CV combo search (ranked by worst fold) found the best:
+
+**US-ORB (16:00, 4R) + EU-ORB (11:00, 4R) + VWAP-pullback (6R) + PDH/PDL (trail 3R),
+−2R daily breaker, 1% risk.** 100k MC: **~52% monthly pass all-data, ~44% out-of-sample,
+median 9 days** (edge WR 26.8% / expR +0.089 / PF 1.14 / 3.8 trades/day). k-fold: mean 52%,
+worst fold 38.7%.
+
+That is the best 20-day pass found in the whole project (beats the live 4R ~38–40% and the
+v3 winner ~40–47%). But note the honest ceiling: **the worst CV fold (38.7%) sits right on
+the 0EV structural baseline** — in a bad regime the edge collapses to what pure variance
+would give. Adding a 5th/6th leg did not help (extra daily-cap exposure offsets the
+decorrelation). So the monthly-pass ceiling on NAS100/FTMO is ~50% (the 0EV martingale
+limit), realistically ~44–52% for this combo and floored near 38% in a bad month. The
+structure (high RR, low frequency, a few uncorrelated legs, −2R breaker) is what matters;
+the small edge just lifts it a few points above the 0EV floor.
