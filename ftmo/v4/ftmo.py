@@ -22,7 +22,7 @@ MIN_DAYS = 4
 
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
            floor_mode="static", sizing="fixed",
-           risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True):
+           risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True, e0=1.0):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -49,7 +49,7 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
     Rmin = dmin[samp]
     Tr   = traded[samp]
 
-    E = np.ones(n_paths)
+    E = np.full(n_paths, e0, float)      # e0<1 => start already in drawdown (conditional pass)
     days_traded = np.zeros(n_paths, int)
     sum_green = np.zeros(n_paths)
     max_green = np.zeros(n_paths)
