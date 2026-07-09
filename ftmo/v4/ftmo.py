@@ -23,7 +23,7 @@ MIN_DAYS = 4
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
            floor_mode="static", sizing="fixed",
            risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True, e0=1.0,
-           daily=DAILY, floor=FLOOR, target=TARGET):
+           daily=DAILY, floor=FLOOR, target=TARGET, trail_dd=0.0):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -51,6 +51,7 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
     Tr   = traded[samp]
 
     E = np.full(n_paths, e0, float)      # e0<1 => start already in drawdown (conditional pass)
+    peak = np.full(n_paths, e0, float)   # running EOD equity peak (for trailing-drawdown firms)
     days_traded = np.zeros(n_paths, int)
     sum_green = np.zeros(n_paths)
     max_green = np.zeros(n_paths)
@@ -73,8 +74,10 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         # intraday floating low this day
         intraday_loss_of_daystart = rmin * rr              # fraction of day-start
         E_low = E * (1.0 + rmin * rr)                      # equity at intraday low
+        # trailing-drawdown firms: floor = peak(EOD) - trail_dd; else a static floor
+        floor_t = (peak - trail_dd) if trail_dd > 0 else floor
         daily_breach   = (intraday_loss_of_daystart <= -daily) if daily > 0 else False
-        overall_breach = E_low <= floor
+        overall_breach = E_low <= floor_t
         blow_now = live & (daily_breach | overall_breach)
         blown |= blow_now
         blow_daily |= (blow_now & daily_breach & ~overall_breach)
@@ -83,6 +86,8 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         # close out the day for survivors
         profit = E * rt * rr                                # start-units profit today
         E = np.where(live, E * (1.0 + rt * rr), E)
+        if trail_dd > 0:
+            peak = np.maximum(peak, E)                       # trail off end-of-day equity
         gp = np.where(live & (profit > 0), profit, 0.0)
         sum_green += gp
         max_green = np.maximum(max_green, gp)
