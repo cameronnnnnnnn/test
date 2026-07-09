@@ -38,10 +38,34 @@ C's train/test inversion (bad TR, good TE) is regime-luck, not a robust edge; it
 just "fewer days = fewer losses." Threshold quantiles here were computed on all data (mild
 look-ahead) — to fix in the next iteration (tune on train only).
 
-## Next (open) directions
-- Tune regime thresholds on TRAIN only; add expansion (ATR-expansion breakout) and reversal
-  (sweep-reclaim) buckets so the switch has a real leg per regime.
-- Find a genuinely +EV range-day fade leg (the current fades are weak) — that's what would make
-  the switch lift *pass*, not just blow.
-- Verdict so far: **no path to 88% mean pass on FTMO yet; regime-switching buys ~8 pts of lower
-  blow at ~flat pass.** Consistent with the audited ~55% ceiling.
+## Second cut — the edge-by-regime matrix, OOS-validated (`regime_edge.py`, `router.py`, `sweep_refine.py`)
+Instead of guessing, measured each strategy's expectancy **per regime** (prior-day ADX/chop AND
+intraday first-hour chop), then OOS-validated every promising cell. What's actually true:
+
+| finding | in-sample | out-of-sample | verdict |
+|---|---|---|---|
+| **fade (MR) in any regime** | negative everywhere | — | **dead** (the "MR in ranges" pillar doesn't exist on NAS100) |
+| **breakout after contraction** (prior-day high chop) | +0.28 / +0.13 | **−0.05** | **noise** — collapsed OOS, rejected |
+| **sweep-reclaim on trend-opens** (low 1h chop) | +0.21 | **+0.24** | **REAL** — held OOS, ~2.7× 52p's edge, best single edge in the project |
+| momentum after strong-trend days | −0.12 | — | contrarian (breakouts fail post-trend) |
+
+So regime signal is real — but for **sweep/breakout, not fade**, and only the **sweep-on-trend-open**
+edge survives OOS. The catch: it fires **~0.33×/day**, so stacking it barely moves a 20-day pass
+(52p+sweep: TE 50.8% vs 50.6%). Trying to raise its frequency with more sweep levels (PDH/PDL,
+opening-range) **diluted the edge to ~0** (TRAIN −0.07 / TEST +0.08) and *hurt* the stack
+(TE→47%). The full switch (52p + sweep + breakout) reaches TE 52.0% / worst-fold 39.8%, but part
+of that is the breakout leg that's OOS-noise, so it isn't trustworthy.
+
+## Final honest verdict on the "88%"
+- **Regime-switching does NOT reproduce 88% on FTMO.** Done rigorously (train/test + k-fold, OOS
+  validation of every cell), it lands at the **same ~55% mean / ~37–40% worst-fold** as 52p.
+- **The "sit out unclear regimes" mechanic backfires on FTMO** — the +10% target needs trade
+  frequency, so skipping days starves it. That mechanic only pays under easier rulebooks
+  (low target / no daily limit / pass-by-survival), which is almost certainly where the 88% lives
+  — plus survivorship and a large in-sample tuning surface.
+- **One genuine keeper:** sweep-reclaim on directional (low-first-hour-chop) opens, +0.24 expR
+  OOS. Real and decorrelated, but low-frequency — so like USDJPY, its value is a few points of
+  **worst-fold floor**, not the mean. It cannot be scaled up (frequency dilutes it to noise).
+- **Bottom line:** the audited ~55% mean / ~40% floor is the ceiling on NAS100/FTMO. Real edges
+  are rare and low-frequency; forcing frequency turns them to noise. An unaudited 88% is not a
+  target to chase — it's a number that hasn't met an out-of-sample test.
