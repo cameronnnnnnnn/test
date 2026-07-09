@@ -19,20 +19,23 @@ TDPM = 21.0        # ~trading days per calendar month
 
 
 def main():
+    bal = float(sys.argv[1]) if len(sys.argv) > 1 else 15000.0
+    e0 = bal / 15000.0
     df = S.prep(data.load()); ad = np.array(sorted(df["date"].unique()))
     tr = engine.simulate(df, CP52.build(df), cost_pts=CP52.COST)
     days = build_days(tr[tr["day"].isin(set(ad))], ad, CP52.BREAKER)
 
     print("=" * 74)
-    print("Fresh FTMO 15k — how long to pass?  (cumulative pass % by trading day)")
+    tag = "Fresh FTMO 15k" if e0 == 1.0 else f"FTMO 15k from ${bal:,.0f} (down {(1-e0)*100:.2f}%)"
+    print(f"{tag} — how long to pass?  (cumulative pass % by trading day)")
     print("=" * 74)
     cols = [20, 30, 40, 60, 80, 100, 120]
     print(f"  {'risk':>6}  " + "".join(f"{f'd{d}':>7}" for d in cols) + f"  {'≈months@pass':>13}")
     for risk in (0.005, 0.0075):
         row = f"  {risk*100:5.2f}% "
         for d in cols:
-            row += f"{ftmo.run_mc(days, risk, d, n_paths=NP, seed=11, block=5)['pass_rate']*100:6.1f}"
-        m = ftmo.run_mc(days, risk, 120, n_paths=NP, seed=11, block=5)
+            row += f"{ftmo.run_mc(days, risk, d, n_paths=NP, seed=11, block=5, e0=e0)['pass_rate']*100:6.1f}"
+        m = ftmo.run_mc(days, risk, 120, n_paths=NP, seed=11, block=5, e0=e0)
         med, mean = m["med_days_to_pass"], m["mean_days_to_pass"]
         row += f"    med {med:.0f}d/{med/TDPM:.1f}mo"
         print(row)
