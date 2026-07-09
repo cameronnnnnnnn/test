@@ -22,7 +22,8 @@ MIN_DAYS = 4
 
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
            floor_mode="static", sizing="fixed",
-           risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True, e0=1.0):
+           risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True, e0=1.0,
+           daily=DAILY, floor=FLOOR, target=TARGET):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -66,14 +67,14 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         # per-trade risk this day: fixed, or a fraction of the distance to the floor
         # (static floor => buffer grows with profit => press when ahead, ease when behind)
         if sizing == "buffer":
-            rr = np.clip(risk_k * (E - FLOOR), r_min, r_max)
+            rr = np.clip(risk_k * (E - floor), r_min, r_max)
         else:
             rr = risk
         # intraday floating low this day
         intraday_loss_of_daystart = rmin * rr              # fraction of day-start
         E_low = E * (1.0 + rmin * rr)                      # equity at intraday low
-        daily_breach   = intraday_loss_of_daystart <= -DAILY
-        overall_breach = E_low <= FLOOR
+        daily_breach   = (intraday_loss_of_daystart <= -daily) if daily > 0 else False
+        overall_breach = E_low <= floor
         blow_now = live & (daily_breach | overall_breach)
         blown |= blow_now
         blow_daily |= (blow_now & daily_breach & ~overall_breach)
@@ -89,7 +90,7 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
 
         # pass check (target + min days + consistency)
         consistent = (max_green <= 0.5 * sum_green + 1e-12) if consistency else True
-        pass_now = live & (E >= TARGET) & (days_traded >= MIN_DAYS) & consistent
+        pass_now = live & (E >= target) & (days_traded >= MIN_DAYS) & consistent
         passed |= pass_now
         t_pass = np.where(pass_now & (t_pass < 0), t, t_pass)
 
