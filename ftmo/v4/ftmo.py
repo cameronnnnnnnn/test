@@ -23,7 +23,7 @@ MIN_DAYS = 4
 def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
            floor_mode="static", sizing="fixed",
            risk_k=0.125, r_min=0.003, r_max=0.02, consistency=True, e0=1.0,
-           daily=DAILY, floor=FLOOR, target=TARGET, trail_dd=0.0):
+           daily=DAILY, floor=FLOOR, target=TARGET, trail_dd=0.0, trail_lock=False):
     """
     days: structured arrays with keys day_R, day_min_R, n (per weekday in sample).
     risk: fraction risked per trade off current balance (e.g. 0.0125).
@@ -74,8 +74,14 @@ def run_mc(days, risk, deadline, n_paths=40000, seed=0, block=1,
         # intraday floating low this day
         intraday_loss_of_daystart = rmin * rr              # fraction of day-start
         E_low = E * (1.0 + rmin * rr)                      # equity at intraday low
-        # trailing-drawdown firms: floor = peak(EOD) - trail_dd; else a static floor
-        floor_t = (peak - trail_dd) if trail_dd > 0 else floor
+        # trailing-drawdown firms: floor = peak(EOD) - trail_dd; else a static floor.
+        # trail_lock (TopStep): the trailing floor stops rising once it reaches the start balance.
+        if trail_dd > 0:
+            floor_t = peak - trail_dd
+            if trail_lock:
+                floor_t = np.minimum(floor_t, e0)
+        else:
+            floor_t = floor
         daily_breach   = (intraday_loss_of_daystart <= -daily) if daily > 0 else False
         overall_breach = E_low <= floor_t
         blow_now = live & (daily_breach | overall_breach)
