@@ -88,7 +88,32 @@ nature and forcing frequency dilutes them to noise** — same as the sweep-frequ
 `../regimeswitch`. The target higher-freq + higher-WR + higher-pass is not achievable on these
 instruments because the high-WR edges are structurally low-frequency.
 
-## Iteration 5 (next) — sweep-reclaim across all instruments
-The one promising angle left: does the sweep-on-trend-open edge (+0.24 OOS on NAS100) exist on the
-forex pairs too? If yes, that's decorrelated frequency from a different mechanism. If not, the loop
-has converged: 52p at 0.5-0.6% (~72% over 2 months) is the best, regime legs add only floor.
+## Iteration 5 — sweep-reclaim across all instruments: doesn't generalise (`sweep_all.py`)
+Generalized sweep (prior-day + pre-session H/L, trend-open gated) on all 5 instruments: expR
+NAS100 −0.13/+0.04 (flip), EUR −0.06/−0.09, GBP −0.04/−0.14, AUD −0.15/−0.01, JPY −0.17/+0.05
+(flip). **Nothing holds.** No forex pair has a sweep edge, and the multi-level version doesn't even
+reproduce NAS100's +0.24 — that was specific to the exact pre-open-range construction; adding
+levels dilutes it. Sweep is NAS100-specific, construction-specific, and low-frequency.
+
+## CONVERGED — final verdict
+Five iterations, one wall every time:
+1. **Lower RR fails everywhere** — the edge on the two instruments that have one (NAS100, USDJPY)
+   is high-RR momentum; cutting winners short for a higher WR turns it negative.
+2. **Prior-day regime routing finds REAL edges** — NAS100 fade|range (55% WR, +0.14, held OOS) and
+   USDJPY momentum|range+unclear — so the user's regime idea genuinely works.
+3. **But those edges are low-frequency and DON'T SCALE** — loosening thresholds to raise frequency
+   flips train expR negative (marginal days are noise). Confirmed for fade|range and sweep alike.
+4. **No cross-instrument edge beyond NAS100 + USDJPY** — EUR/GBP/AUD are dead in every test.
+
+**So the target (higher frequency + higher WR + higher pass) is not achievable on these 5
+instruments** — because the high-WR edges that exist are structurally rare, and forcing frequency
+dilutes them to noise. The ~55% (1-month) / ~72% (2-month) ceiling is real.
+
+**What the search DID produce (worth keeping):** the NAS100 **fade-in-range** leg — a genuine
+55%-WR, +0.14 edge, decorrelated from 52p — is a legitimate small add-on that lifts the worst-fold
+floor (37→~39). It doesn't raise the mean, but it's the highest-WR edge the whole project found.
+
+**Bottom line: 52p (NAS100 momentum) at 0.5-0.6% remains the best challenge strategy** (~72% over
+2 months). The regime work confirmed the ceiling is structural, not a failure of effort — and gave
+one keeper floor-raiser. Binding constraint = the instrument set; a genuinely new market with its
+own intraday edge is the only thing that could push further.
