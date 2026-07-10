@@ -69,3 +69,26 @@ LOW-FREQUENCY to lift the mean pass — they only nudge the worst-fold floor (37
 is never edge quality, always frequency: the high-WR edge exists but is rare (needs its regime).
 The ~55% ceiling holds. Next: can the fade-in-range / sweep edges be made higher-frequency without
 diluting (one honest attempt), or is the ceiling structural.
+
+## Iteration 4 — can the high-WR edge be made higher-frequency? No. (`freq_scale.py`)
+Tried to scale the 55%-WR fade|range edge: loosen the range threshold (more days) and fade more
+aggressively (lower k). Result — it does NOT scale:
+
+| range def | /day | expR train / test |
+|---|---|---|
+| strict (ADX<20 & chop>55) | 0.15 | **+0.112 / +0.197** (holds) |
+| chop>q60 | 0.40 | −0.043 / +0.057 (train flips) |
+| chop>q40 | 0.61 | −0.118 / +0.054 (train flips hard) |
+| chop>median | 0.50 | −0.054 / +0.116 (train flips) |
+
+Every attempt to raise frequency turns TRAIN expR negative — the marginal days added are losers,
+and the positive test numbers are noise (train↔test sign-flip = no robust edge). The edge exists
+ONLY on true range days (~15% of days, one trade each). **Confirmed: real edges here are rare by
+nature and forcing frequency dilutes them to noise** — same as the sweep-frequency test in
+`../regimeswitch`. The target higher-freq + higher-WR + higher-pass is not achievable on these
+instruments because the high-WR edges are structurally low-frequency.
+
+## Iteration 5 (next) — sweep-reclaim across all instruments
+The one promising angle left: does the sweep-on-trend-open edge (+0.24 OOS on NAS100) exist on the
+forex pairs too? If yes, that's decorrelated frequency from a different mechanism. If not, the loop
+has converged: 52p at 0.5-0.6% (~72% over 2 months) is the best, regime legs add only floor.
