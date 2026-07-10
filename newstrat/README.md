@@ -35,6 +35,37 @@ high-RR edges**, so next iterations hunt edge with OTHER setup types (sweep-recl
 all instruments — if e.g. forex pairs carry a sweep edge even though they lack a breakout edge,
 that adds decorrelated frequency and is the real path to higher pass.
 
-## Next
-- Iteration 2: sweep-reclaim + other setup types across all 5 instruments — which carry any edge?
-- Then: stack the uncorrelated high-RR edges, MC the 20-day pass vs 52p's ~55%, train/test + k-fold.
+## Iteration 2 — prior-day regime × setup × instrument edge matrix (`regime_matrix.py`)
+User's idea: multiple strategies, one per regime, regime detected from the PRIOR day (causal —
+regimes persist). Standard untuned thresholds (ADX 25/20, chop 45/55); momentum(4R) vs fade(MR),
+expR reported TRAIN/TEST per cell. A cell only counts if BOTH halves are clearly +.
+
+| instrument · prior-day regime | setup | expR train/test | verdict |
+|---|---|---|---|
+| **NAS100 · range** | **fade (MR)** | **+0.11 / +0.20** | real — MR works *after a range day* |
+| NAS100 · unclear | momentum | +0.09 / +0.01 | weakly real (the 52p bulk) |
+| **USDJPY · range** | **momentum** | **+0.09 / +0.11** | real |
+| USDJPY · unclear | momentum | +0.06 / +0.06 | real |
+| EUR / GBP / AUD (all regimes) | either | flip or negative | dead |
+
+Key: "fade is dead" is **only true unconditionally** — *conditioned on a prior-day range regime*,
+NAS100 mean-reversion has real OOS edge. Momentum on USDJPY works in range/unclear but fails after
+trend days (contrarian-after-trend). So prior-day regime routing does carry real signal.
+
+## Iteration 3 — does routing ADD pass rate? (`router.py`)
+Per-leg: **NAS100 fade|range = 55% WR, +0.140 expR** (higher WR *and* edge than 52p — exactly the
+target profile, and it held OOS). But it fires only **0.15×/day**. Stacked on 52p (risk on train,
+4-fold):
+
+| combo | TEST pass | worst fold |
+|---|---|---|
+| 52p baseline | 50.6% | 37.0% |
+| 52p + NAS fade\|range | 50.6% | 37.5% |
+| 52p + USDJPY mom | 48.6% | 38.0% |
+| 52p + both | 48.6% | 39.3% |
+
+**Verdict: the regime idea surfaces genuine edges (incl. a real 55%-WR one), but they're too
+LOW-FREQUENCY to lift the mean pass — they only nudge the worst-fold floor (37→39).** The problem
+is never edge quality, always frequency: the high-WR edge exists but is rare (needs its regime).
+The ~55% ceiling holds. Next: can the fade-in-range / sweep edges be made higher-frequency without
+diluting (one honest attempt), or is the ceiling structural.
