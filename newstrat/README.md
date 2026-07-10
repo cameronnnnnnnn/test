@@ -117,3 +117,24 @@ floor (37→~39). It doesn't raise the mean, but it's the highest-WR edge the wh
 2 months). The regime work confirmed the ceiling is structural, not a failure of effort — and gave
 one keeper floor-raiser. Binding constraint = the instrument set; a genuinely new market with its
 own intraday edge is the only thing that could push further.
+
+## Deliverable — `ChallengePhase52pRegime.py` (52p, regime-optimised)
+Requested: duplicate 52p and optimise it with regime switching. Tested honestly (`regime_optimize.py`)
+across three forms:
+- **switch** (replace momentum with fade on range days): WORSE — safer (lower blow) but loses too
+  much frequency, pass drops on every horizon (2mo 71.7→69.4%). Rejected.
+- **add** (keep all 4 momentum legs, ADD the fade leg on prior-day-range days only): the winner.
+
+`ChallengePhase52pRegime.build(df)` = the 4 unchanged 52p momentum legs + a fade leg gated to
+prior-day-range regime (ADX<20 & Chop>55, causal). Honest result:
+
+| horizon | 52p base | + regime | Δ |
+|---|---|---|---|
+| 1 month | 55.3% | 55.7% | +0.4 |
+| 2 months | 71.6% | 72.0% | +0.4 |
+| 3 months | 80.5% | 80.9% | +0.4 |
+
+WR 26.8→27.9%, expR +0.089→+0.091, blow slightly lower — a **small but consistent** lift on every
+horizon. It's small because the fade|range edge (the project's highest-WR find at 55%) is real but
+low-frequency (~0.15/day). That is the honest ceiling: regime switching optimises 52p a little, not
+a lot. Regime detection is iADX(14)+Choppiness(14) on D1 — portable to the .mq5 EA on request.
