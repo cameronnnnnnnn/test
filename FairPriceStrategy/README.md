@@ -43,3 +43,19 @@ sizing rule, which concentrates the trades on high-energy opens and gives them r
 Caveats: US100 CFD (not NQ futures), fractal-rule approximation of discretionary structure
 reading, no news-day handling. EA port of the FP leg (leg I) is straightforward: 16:30-16:45
 window, opening-candle direction, trigger-range >25pts, 50/76, max 2 entries.
+
+## Standalone deliverable — `FairPriceNY.py` (+ `standalone.py`, the build/search)
+User scope: a standalone strategy, not a 52p add-on. Distilled to the honestly-surviving core:
+NY-open **big-candle** (trigger range >25pts) continuation (first 15 min, ≤2 entries) + reversion
+(BOS, ≥30pts room), 50pt stop, **hard 4R TP** (exit swept on train only — at 4R even the
+reversion leg is +EV both halves; the video's 1.5R is this framework's weakest exit).
+
+Edge: 0.64 trd/day · WR 36.3% · **expR +0.138** (per-trade better than 52p). Standalone ceiling
+(risk-horizon map, ALL data): at **1% risk — 2mo ~27%/12% blow, 3mo ~39%/18%, 4.5mo ~51%/24%**;
+at 0.75% it almost never blows but crawls; ≥1.25% risk destroys it (blow explodes). A relative
+(vol-scaled) big-candle threshold was tested to add frequency: worse OOS; London leg has no edge
+under either threshold. **The limit is structural: 0.64 trades/day of 4R shots cannot reach +10%
+in 20-40 days at survivable risk — the frequency wall, not edge quality.** As a standalone it is
+a patient, low-blow grinder well below 52p's pass curve (72% @ 2mo); its best use remains as an
+edge-source (the FP leg lifts 52pPlus to 56.6% OOS — see above), but it stands on its own at the
+numbers stated.
