@@ -15,7 +15,9 @@ away-from-fair trade allowed is the opening continuation.
       From 10:30 on, only A+ (displacement AND BOS) — volume is thinning.
   EXIT: fixed 1:1.5, nothing moved. 25pt stop / 37.5pt TP; if the trigger candle's BODY > 25pts,
       50pt stop / 75pt TP (same $ risk, same R:R). No room-skip, no breakeven.
-  DAY STOPS: 0.75% risk/trade; the day ends at 3 losses, 3 wins, or 11:00 — whichever first.
+  DAY STOPS: 0.75% risk/trade; the day ends at 3 losses or 11:00. (No win cap — keeping the
+      3-loss floor but letting green days run is a small, free pass-rate gain: OOS 20/40/60d
+      12.8/30.1/41.1% -> 13.8/31.7/43.1%, blow unchanged, because 3 wins/day rarely binds anyway.)
 
 Reported honestly: freq, WR, expR train/test at BOTH zero cost (what a manual chart backtest
 sees) and the real 2pt CFD spread, then the FTMO 0.75% MC. Run: python3 user_spec.py
@@ -36,7 +38,7 @@ CFG = dict(
     stop_small=25.0, stop_big=50.0, big_thresh=25.0, rr=1.5,   # body > big_thresh -> big stop
     cont_win=10, rev_end=90, aplus_after=60,                   # 60 min after open = 10:30
     wick_max=0.30, swing_k=2, bos_lookback=45,
-    risk=0.0075, max_losses=3, max_wins=3, cost_pts=2.0,
+    risk=0.0075, max_losses=3, max_wins=99, cost_pts=2.0,   # 3-loss floor kept; no win cap
 )
 OPEN = 16*60 + 30                                              # NY 9:30 = 16:30 server (EET)
 
@@ -148,7 +150,7 @@ def main():
         gtr = t[t["day"] <= cut]; gte = t[t["day"] > cut]
         print(f"  {lbl}: {es(gtr)}  |  {es(gte)}")
 
-    print(f"\nFTMO 15k 1-Step MC — {CFG['risk']*100:.2f}% risk (2pt cost, -3 loss/+3 win day stop):")
+    print(f"\nFTMO 15k 1-Step MC — {CFG['risk']*100:.2f}% risk (2pt cost, -3 loss day stop):")
     dte = ad[ad > cut]
     for lbl, t, dd_days in [("ALL", tr, ad), ("OOS", tr[tr["day"].isin(set(dte))], dte)]:
         dd = build_days(t, dd_days, 2.0)

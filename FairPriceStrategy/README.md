@@ -71,7 +71,9 @@ Finalized from the user's two annotated examples (IMG_6082/6083) + his answers. 
   taken); **from 10:30 on, A+ only** (volume thinning).
 * Fixed **1:1.5, nothing moved** (no room-skip, no breakeven — his answer). 25/37.5, or 50/75 if
   the trigger candle's **BODY** > 25pts (adaptive on body, not range).
-* **0.75% risk; day ends at 3 losses, 3 wins, or 11:00.**
+* **0.75% risk; day ends at 3 losses or 11:00** (3-loss floor kept; the 3-win cap was dropped —
+  a small free gain, OOS 20/40/60d 12.8/30.1/41.1% → 13.8/31.7/43.1%, blow unchanged, since 3
+  wins/day rarely binds at ~41% WR).
 
 Result: **2.52 trades/day** (0.6 openers + 1.9 reversions; a touch under his manual 3-4 because
 mechanical disp/BOS is stricter than the eye + the 3-win/3-loss cap ends some days early).
