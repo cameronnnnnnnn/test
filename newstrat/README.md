@@ -138,3 +138,25 @@ WR 26.8→27.9%, expR +0.089→+0.091, blow slightly lower — a **small but con
 horizon. It's small because the fade|range edge (the project's highest-WR find at 55%) is real but
 low-frequency (~0.15/day). That is the honest ceiling: regime switching optimises 52p a little, not
 a lot. Regime detection is iADX(14)+Choppiness(14) on D1 — portable to the .mq5 EA on request.
+
+## Iteration 6 — DATA-FIRST mining (`mine.py`, `mined.py`)
+Brief: stop testing known templates; analyse the data, find patterns, CREATE the strategy.
+Protocol: pattern selection on TRAIN only at |t|≥3.5 (multiple-testing corrected), one-shot
+sign-check on TEST, then an **economic-mechanism check** (spread column) before believing anything.
+
+**The two flashiest finds were artifacts** — the strongest statistics in 9M bars:
+- FX 00:45 "pop" (t up to **57**, held OOS, all pairs): the rollover spread renormalizing on
+  bid-price bars (spread 29–56pts → 11–16 at exactly 01:00). Buying pays the wide ask; fake.
+- GER40 22:45 "fade" (t=−17.7, held OOS): spread 60 → **810** at 23:00; the bid is mechanically
+  crushed into the close. Fake.
+Lesson: t-stats + OOS holds are NOT enough — the *mechanism* must survive the microstructure.
+
+**Clean survivors** → a 6-leg time-of-day drift portfolio (NAS 10:15L/17:30S/18:15L/22:45L,
+GER40 09:00L/18:00L; time exits, 0.25-ATR protective stops): **5.9 trades/day, WR 50.5%,
+expR −0.000 — exactly 0EV after cost.** The requested high-freq/high-WR/low-RR shape, honestly
+mined. MC: alone **20.6% pass / 75.6% blow** (the daily-cap slam, again — 4th confirmation that
+this structure is the worst for prop challenges); stacked on 52p it *drags* (49→45%).
+
+**One keeper:** G2 = GER40 long 18:00→18:45 (into the DAX cash close; spread flat, +0.028/+0.066
+both halves, 55% WR). 52p + G2 only: TE 49.2→50.1%, foldMean 55.5→56.3%, worst 37.4→38.4% —
+a small, consistent, decorrelated (+0.08) lift, same size as the fade|range keeper.
