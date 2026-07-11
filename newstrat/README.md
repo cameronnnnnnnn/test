@@ -160,3 +160,24 @@ this structure is the worst for prop challenges); stacked on 52p it *drags* (49�
 **One keeper:** G2 = GER40 long 18:00→18:45 (into the DAX cash close; spread flat, +0.028/+0.066
 both halves, 55% WR). 52p + G2 only: TE 49.2→50.1%, foldMean 55.5→56.3%, worst 37.4→38.4% —
 a small, consistent, decorrelated (+0.08) lift, same size as the fade|range keeper.
+
+## Iteration 9 — GRAND UNIFICATION → `ChallengePhase52pPlus.py` (the deliverable)
+The five keepers had only ever been tested one-at-a-time. Stacked (`stack.py`): all pairwise
+daily-R correlations ≈ 0 and the individual ~+1pt lifts are **additive**. Best build excludes
+USDJPY-Tokyo (it trades mean for floor: worst-fold 37→44 but 40d blow 11→22%; optional).
+
+**52pPlus = 52p + fade|range + GER40-close + turn-of-month + Monday** (needs NAS100 + GER40):
+
+| metric | 52p | **52pPlus** |
+|---|---|---|
+| TE 20d pass | 49.2% | **54.5%** |
+| fold mean / worst | 55.6 / 37.4 | **57.3 / 40.2** |
+| 1 month (all, best risk) | 55.9% | **58.0%** |
+| 2 months | 71.7% | **74.6%** |
+| 3 months | 80.5% | **83.1%** |
+| WR / freq | 26.8% / 3.8 | **34.3% / 5.3** |
+
+First combination in the project that improves EVERY metric simultaneously — the additive-
+decorrelation thesis finally realized, because (unlike the early HF attempts) every added leg has
+genuine OOS-validated edge. Caveat: K5 (Monday) is the statistically weakest leg (t=2.5);
+dropping it keeps most of the lift. Live 52p account: leave running as-is; Plus is for the next.
