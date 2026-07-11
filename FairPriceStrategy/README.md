@@ -59,3 +59,22 @@ in 20-40 days at survivable risk — the frequency wall, not edge quality.** As 
 a patient, low-blow grinder well below 52p's pass curve (72% @ 2mo); its best use remains as an
 edge-source (the FP leg lifts 52pPlus to 56.6% OOS — see above), but it stands on its own at the
 numbers stated.
+
+## User-spec version (`user_spec.py`) — and the reconciliation
+The user's exact manual rules (0-1 continuation in 0-10min; 2-3 reversions with displacement-OR-
+BOS triggers; TP-room rule: TP no more than 5pts past the FAR edge of the fair area; BE rule:
+if TP reaches past the NEAR edge, breakeven on first touch of it; adaptive 25/38→50/76):
+2.27 accepted trades/day (raw ~3.1 ≈ the user's manual 3-4).
+
+**The zero-cost check reconciles everything:**
+| | WR | expR train/test |
+|---|---|---|
+| zero cost (what a manual chart backtest sees) | 41-43% | **+0.009 / +0.029** (positive!) |
+| real 2pt CFD spread | 40-42% | −0.064 / −0.036 |
+
+The pattern is REAL on raw prices — the user's manual verification is correct — but at 25pt
+stops the 2pt spread costs 0.08R/trade, 3-8x the raw edge. On US100 CFD the spec is therefore
+net-negative (MC 8-13% pass). On NQ/MNQ futures (~0.5-0.75pt effective cost) it sits at ~0EV —
+exactly matching the video's own "would break even live" and explaining his actual engine:
+0EV edge + prop-firm convexity + dozens of accounts + resets. The only cost-viable CFD
+expression of the framework is the big-candle/4R distillation (`FairPriceNY.py`).
