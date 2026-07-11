@@ -13,7 +13,8 @@ FXDIR = os.path.normpath(os.path.join(HERE, "..", "ftmo", "data_fx"))
 INSTR = {"EURUSD": "EURUSD_M1_20210101_20260101.csv",
          "GBPUSD": "GBPUSD_M1_20210101_20260101.csv",
          "AUDUSD": "AUDUSD_M1_20210101_20260101.csv",
-         "USDJPY": "USDJPY_M1_20210101_20260101.csv"}
+         "USDJPY": "USDJPY_M1_20210101_20260101.csv",
+         "GER40":  "GER40_M1_20210101_20260101.csv"}
 COLS = ["DATE", "TIME", "OPEN", "HIGH", "LOW", "CLOSE", "TICKVOL", "VOL", "SPREAD"]
 
 
