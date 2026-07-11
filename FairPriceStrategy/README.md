@@ -60,21 +60,34 @@ a patient, low-blow grinder well below 52p's pass curve (72% @ 2mo); its best us
 edge-source (the FP leg lifts 52pPlus to 56.6% OOS — see above), but it stands on its own at the
 numbers stated.
 
-## User-spec version (`user_spec.py`) — and the reconciliation
-The user's exact manual rules (0-1 continuation in 0-10min; 2-3 reversions with displacement-OR-
-BOS triggers; TP-room rule: TP no more than 5pts past the FAR edge of the fair area; BE rule:
-if TP reaches past the NEAR edge, breakeven on first touch of it; adaptive 25/38→50/76):
-2.27 accepted trades/day (raw ~3.1 ≈ the user's manual 3-4).
+## User-spec version (`user_spec.py`) — FINAL, from the two annotated charts
+Finalized from the user's two annotated examples (IMG_6082/6083) + his answers. Exact rules:
+* **Fair price = the CLOSE of the 9:29 candle** (a single level, not a zone). Above it → shorts
+  only; below it → longs only. Every trade after the open is TOWARD fair; the only away-from-fair
+  trade is the opening continuation (the "unfair move"). The screenshot-1 trade-3 short *away*
+  from fair is explicitly excluded — the direction rule enforces that automatically.
+* P1 opener (0-10min, ≤1): opening-candle direction, displacement OR BOS. P2 reversion (10-90min,
+  until 11:00): toward fair, displacement OR BOS; **A+ = disp AND BOS, B+ = disp only** (both
+  taken); **from 10:30 on, A+ only** (volume thinning).
+* Fixed **1:1.5, nothing moved** (no room-skip, no breakeven — his answer). 25/37.5, or 50/75 if
+  the trigger candle's **BODY** > 25pts (adaptive on body, not range).
+* **0.75% risk; day ends at 3 losses, 3 wins, or 11:00.**
 
-**The zero-cost check reconciles everything:**
-| | WR | expR train/test |
+Result: **2.52 trades/day** (0.6 openers + 1.9 reversions; a touch under his manual 3-4 because
+mechanical disp/BOS is stricter than the eye + the 3-win/3-loss cap ends some days early).
+
+**The zero-cost check still reconciles everything (now on his EXACT rules):**
+| | WR | expR train / test |
 |---|---|---|
-| zero cost (what a manual chart backtest sees) | 41-43% | **+0.009 / +0.029** (positive!) |
-| real 2pt CFD spread | 40-42% | −0.064 / −0.036 |
+| zero cost (what a manual chart backtest sees) | 40-45% | **−0.006 / +0.088** |
+| real 2pt CFD spread | 40-44% | −0.081 / +0.019 |
 
-The pattern is REAL on raw prices — the user's manual verification is correct — but at 25pt
-stops the 2pt spread costs 0.08R/trade, 3-8x the raw edge. On US100 CFD the spec is therefore
-net-negative (MC 8-13% pass). On NQ/MNQ futures (~0.5-0.75pt effective cost) it sits at ~0EV —
-exactly matching the video's own "would break even live" and explaining his actual engine:
-0EV edge + prop-firm convexity + dozens of accounts + resets. The only cost-viable CFD
-expression of the framework is the big-candle/4R distillation (`FairPriceNY.py`).
+The pattern is REAL on raw prices — his manual verification is correct — but at 25pt stops the
+2pt spread costs ~0.08R/trade. On raw/futures prices it is ~breakeven-to-slightly-positive
+(the opener P1 is the +EV carrier: +0.137 OOS); on US100 CFD the spread taxes it to flat.
+FTMO MC at 0.75%/3-loss/3-win: full sample 5/13/19% pass (20/40/60d), **recent OOS 13/30/41%**,
+with a LOW blow rate (7% at 20d — the 3-loss cap works). Profile = a 0EV-edge-plus-convexity
+grinder that passes on variance over longer horizons, not a reliable one-month sprint. Note the
+3-win daily cap suppresses the upside variance that drives prop passes; keeping the 3-loss floor
+but lifting the win cap is the obvious pass-rate lever (quantifiable on request). The only
+cost-viable CFD distillation remains the big-candle/4R `FairPriceNY.py`.
