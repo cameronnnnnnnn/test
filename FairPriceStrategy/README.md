@@ -1,49 +1,45 @@
-# FairPriceStrategy — "fair pricing theory" (video strategy), implemented and tested honestly
+# FairPriceStrategy — "fair pricing theory" (two video transcripts), tested honestly
 
-Source: video transcription (US$1.2M-payouts claim). Core thesis: the candle before a session
-open is the session's **fair price**; the post-open move is "unfair" (new participants/opening
-flow), so trade **continuation** of the opening candle for the first 0–10 min, then **reversion
-back to the fair price** from 10–90 min. Entries = **displacement candle** (body > prior body,
-tiny wicks) or **break of structure + close beyond** (fractal swings). A+ = both triggers.
-Fixed **25pt stop / 38pt target (1:1.5)**. Sessions (EST→EET server): 18:00→01:00 reopen,
-20:00→03:00 Asia, 03:00→10:00 London, 08:30→15:30 news, 09:30→16:30 NY (primary), 14:00→21:00 PM.
-Session discipline: first qualifying setup in phase 1, max 4 accepted/session, phase 2 halts
-after its first loss, next trade only after the prior one exits.
+v1 implemented the first transcript across all 6 sessions and failed hard (8-11% pass) — but the
+user correctly called the implementation unfaithful. The second transcript fixed five real gaps:
+fair price is the pre-open candle ZONE (not its close); **break-of-structure is THE reversion
+entry** (displacement is a strength qualifier); **the adaptive stop rule** (trigger candle >25pts
+→ 50pt stop / 76pt TP at half size, same $ risk); re-entry after losses is normal
+(win-loss-win-loss-win); and scope = NY 9:30 only (no news calendar).
 
-`fairprice.py` implements all of it with configurable thresholds (no magic numbers) and applies
-the video's own (correct) doctrine: judge it by the **FTMO pass rate**, not the equity curve.
+## v3 results (NY 9:30 only, faithful; NAS100 M1, 2pt cost, 70/30 train/test)
+Overall: 1.87 trades/day, WR ~42%, expR **train −0.056 / test −0.001** — breakeven, exactly what
+the video itself predicts outside prop-specific mechanics. FTMO MC standalone: 17% pass / 55-64%
+blow. The REVERSION core (trade back to fair) is negative/flat in both halves in every cut —
+consistent with every reversion-to-anchor test in this project.
 
-## Results (NAS100 M1 2022-2025, 2pt round-turn, 70/30 train/test)
+**But the split found a real component.** The adaptive-stop rule cleanly separates the trades:
+| slice | n | expR train | expR test |
+|---|---|---|---|
+| 25/38 trades (small trigger candle) | 987 | −0.088 | −0.107 |
+| **50/76 trades (big trigger candle)** | 440 | **+0.050** | **+0.125** |
+| ...of which **P1 continuation** | 265 | **+0.109** | **+0.178** |
+| ...of which P2 reversion | 175 | −0.072 | +0.066 (flip) |
 
-**Faithful spec (25/38, all sessions): fails.**
-| | n | WR | expR train | expR test |
-|---|---|---|---|---|
-| ALL | 5,679 (7.4/day) | 40.4% | −0.098 | −0.050 |
-| P1 continuation | 3,125 | ~42% | −0.078 | +0.011 |
-| P2 reversion (the "fair price" core) | 2,554 | ~39% | **−0.124** | **−0.110** |
-| FTMO MC | | | **8–11% pass, 77–82% blow** | |
+**The keeper: FP-s50-P1 — big-candle opening continuation.** First ~15 min after the NY open,
+trigger candle (displacement or BOS+close in the opening candle's direction) with range >25pts,
+50pt stop / 76pt TP (1:1.5), up to 2 entries. ~0.35 trades/day, +0.109/+0.178 both halves,
+correlation with 52p only **+0.11** (candle-displacement fires on different days than the 15-min
+range breakout).
 
-WR needed to break even at 1:1.52 after cost ≈ 43%; realized 40–42%. The claimed 70–80% WR is
-nowhere in the data. The reversion phase — the strategy's centerpiece — is decisively negative in
-BOTH halves, consistent with every other mean-reversion-to-anchor test in this project
-(equilibrium scan, VWAP fades, gap fills: the "price returns to fair" premise doesn't exist
-tradeably on this instrument). The 25pt stop makes cost 0.08R/trade — at 7.4 trades/day that is
-the exact low-RR/high-frequency death mode proven in `challengephaseHF`.
+## Stacking (risk on train, TEST reported)
+| build | TE20 pass | blow | 40d pass |
+|---|---|---|---|
+| 52p | 50.7% | 30.9% | 67.7% |
+| 52p + FP leg | 52.8% | 29.5% | 69.0% |
+| 52pPlus | 54.5% | 28.2% | 69.5% |
+| **52pPlus + FP leg** | **56.6%** | **27.0%** | **70.9%** |
 
-**Robustness grid (not a strawman):** stops 25/38, 40/60, 50/75 × {all, NY-only, P1-only, A+-only}:
-everything ≤ 0EV except ONE cell — **NY-open A+ only (displacement AND structure-break together)**
-at 40–50pt stops: +0.03/+0.07 (40/60) and +0.04/+0.09 (50/75), n≈190, ~0.25 trades/day. The
-confluence entry at the primary session with humane stops has a thin real edge. Stacked on 52p it
-adds ~+0.3pt (TE20 50.7→51.0) — negligible at its frequency. Not worth deploying.
+**+2.1 points OOS on top of the full Plus, with lower blow — the largest single-leg addition
+since turn-of-month, sourced from the user's video.** The fair-price REVERSION thesis still
+doesn't survive on this data; what survives is the strategy's continuation entry + its adaptive
+sizing rule, which concentrates the trades on high-energy opens and gives them room to breathe.
 
-## Verdict
-- **The strategy as specified does not work here** — and, notably, the video itself predicts
-  this: "if you were to trade it on a live account, it would probably break even." Our CFD
-  measurement is exactly that (~0EV at best geometry, negative at spec). His claimed edge lives —
-  if anywhere — in prop-firm-specific mechanics (trailing-drawdown futures evals, resets,
-  40-account survivorship), not in the price action itself.
-- The video's one genuinely correct and valuable idea is methodological: **backtest the pass
-  rate, not the equity curve** — which is precisely this project's method.
-- Caveats: our data is US100 CFD (not NQ futures order flow), no true news calendar (15:30 anchor
-  fired daily), and discretionary chart-reading ("structure", grade judgment) is only
-  approximated by fractal rules. Faithful, but an approximation of a discretionary process.
+Caveats: US100 CFD (not NQ futures), fractal-rule approximation of discretionary structure
+reading, no news-day handling. EA port of the FP leg (leg I) is straightforward: 16:30-16:45
+window, opening-candle direction, trigger-range >25pts, 50/76, max 2 entries.
