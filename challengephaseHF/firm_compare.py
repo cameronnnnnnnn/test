@@ -74,7 +74,7 @@ def mc(tri, risk, start, target, dd, mode, daily=0.0, cons=0.0, min_days=1,
 
 FIRMS = [
     # name, cost_pts, start, target, dd, mode, daily, cons, min_days, fee, fee_type, risks($)
-    ("Apex 50K",            1.5, 50_000, 3000, 2500, "intraday", 0,    0.50, 7, 40,  "mo", (240, 400, 560, 800)),
+    ("Apex 50K",            1.5, 50_000, 3000, 2500, "intraday", 0,    0.50, 1, 40,  "mo", (240, 400, 560, 800)),
     ("TopStep 50K",         1.5, 50_000, 3000, 2000, "eod",      1000, 0.0,  2, 49,  "mo", (240, 400, 560, 800)),
     ("EOD-trail 50K (MFFU-style)", 1.5, 50_000, 3000, 2500, "eod", 1250, 0.0, 1, 80, "mo", (240, 400, 560, 800)),
     ("STATIC-dd 50K (Tradeify-style)", 1.5, 50_000, 3000, 2500, "static", 1250, 0.0, 1, 100, "mo", (240, 400, 560, 800)),
