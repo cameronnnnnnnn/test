@@ -10,19 +10,17 @@ for prop-firm challenge practice. Deliver it as ONE self-contained .html file I 
 no server, no build step, no CDN/external requests, everything inline. Write it into a new folder
 `backtester/` in the repo and commit it.
 
-## DATA
-- 1-minute bars only. I drag-and-drop my MT5 CSV exports onto the app; it parses and caches to IndexedDB
-  so reopening is instant. Show a parse progress bar; use a Web Worker so the UI never freezes.
-- Support BOTH export formats I have (auto-detect):
-  (a) NAS100: tab-separated, header `"DateTime  Open  High  Low  Close  Volume  TickVolume"`, first and
-      last fields wrapped in double-quotes, datetime `2025.10.01 07:12:00`, rows REVERSE-chronological.
-  (b) FX/GER40: tab-separated, header `DATE TIME OPEN HIGH LOW CLOSE TICKVOL VOL SPREAD`,
-      date `2021.01.04`, time `00:04:00`, ascending. The SPREAD column is in points — use it for
-      realistic per-bar spread when present.
-- Store as typed arrays (Float32/Int32), not objects. Must handle 2M+ bars smoothly.
-- Timestamps in the files are broker server time (EET/EEST). Add a timezone selector (Server / New York /
-  London / Sydney) that only changes DISPLAY — never the underlying data. Default view New York, because
-  I think in ET session times.
+## DATA — NAS100 ONLY (single instrument, don't build multi-instrument support)
+- NAS100 (US100), 1-minute bars only. I drag-and-drop my MT5 CSV export onto the app; it parses and caches
+  to IndexedDB so reopening is instant. Show a parse progress bar; use a Web Worker so the UI never freezes.
+- Exact format: tab-separated, header `"DateTime  Open  High  Low  Close  Volume  TickVolume"`, the first
+  and last fields are wrapped in double-quotes, datetime `2025.10.01 07:12:00`, rows are
+  REVERSE-chronological (newest first) — sort ascending on load. ~1.04M bars, 63MB.
+- Store as typed arrays (Float32/Int32), not objects. Must stay smooth at 1M+ bars.
+- Timestamps are broker server time (EET/EEST). Add a timezone selector (Server / New York) that only
+  changes DISPLAY — never the underlying data. Default to New York, because I think in ET session times.
+- Instrument spec fixed to NAS100: 1 index point = $20 for NQ minis and $2 for MNQ micros; let me choose
+  mini or micro per account. Spread/commission are settings I type in (no spread column in this file).
 
 ## CHART (canvas, not DOM)
 - Candlesticks with wicks, TradingView-style dark theme; blue/green up, black/red down (configurable).
@@ -40,7 +38,7 @@ no server, no build step, no CDN/external requests, everything inline. Write it 
   selector (1x/5x/20x/max), jump forward N minutes, and "jump to next session open".
 - A visible "replay cursor" marker and a date/time display of the current replay bar.
 
-## DRAWING TOOLS (must be draggable/editable after placement, persisted per instrument)
+## DRAWING TOOLS (must be draggable/editable after placement, and survive reload)
 - Long Position and Short Position tools EXACTLY like TradingView: drag to set entry, stop, target; shows
   RR ratio, points risked/gained, $ risk and $ P/L based on the ACTIVE account's contract size; drag any
   of the three handles to adjust; snap-to-price option.
@@ -57,8 +55,8 @@ no server, no build step, no CDN/external requests, everything inline. Write it 
   * Entries fill at the NEXT bar's open, plus spread and configurable slippage.
   * If a bar's range contains BOTH stop and target, resolve as STOP HIT (conservative). Show a warning
     badge on that trade so I know it was ambiguous.
-  * Apply commission per contract per side, and spread from the data's spread column if available,
-    otherwise a fixed points value I set.
+  * Apply commission per contract per side plus a fixed spread in points that I set in settings
+    (default 1.5pt total cost).
 - Trade log panel: entry/exit time, direction, size, points, R multiple, $, MAE/MFE, exit reason
   (TP/SL/manual/EOD/ambiguous).
 
@@ -72,7 +70,7 @@ Configurable rule set per account:
 - consistency rule % (best day must be <= X% of total profit) — show live status, and whether violating it
   BLOCKS the pass or just delays it
 - minimum trading days, maximum days (optional)
-- contract cap (e.g. 6 minis / 60 micros), tick value, tick size, commission, per-instrument point value
+- contract cap (e.g. 6 minis / 60 micros), mini-or-micro selection, commission per side
 - Live HUD showing: current balance, current floor/threshold price, distance to floor, distance to target,
   days traded, consistency status, and a big PASS / FAILED / ACTIVE state badge that triggers the moment a
   rule is breached (with the exact breach reason and timestamp logged).
@@ -106,7 +104,7 @@ Configurable rule set per account:
 - Export all trades to CSV.
 
 ## UI LAYOUT
-Left vertical toolbar (drawing tools), top bar (instrument, timeframe fixed at 1m, timezone, replay
+Left vertical toolbar (drawing tools), top bar (timeframe fixed at 1m, timezone, replay
 controls, active-account selector), right panel (tabs: Accounts / Rules / Trades / Stats), bottom strip
 (replay timeline scrubber). Keyboard shortcuts listed in a help overlay (press ?).
 
