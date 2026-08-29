@@ -59,9 +59,15 @@ dropdown or keys `1`–`9`.
 
 * **Bulk create**: pick a preset, set a count, hit `+ Add` to spin up 10+ accounts at once.
   `⧉` clones the active account (rules, risk and sizing).
-* **Mirror** (`M`) fires each order into every *enabled, still-active* account, sized by that
-  account's own risk setting, contract cap and tick value. Toggle an account's `on` checkbox to
-  include or exclude it — that is also how you stagger starts.
+* **Copy trade is ON by default** (`M` toggles it). One order enters on *every* account whose
+  `copy` box is ticked and that is still ACTIVE, each sized by its own risk setting, contract cap
+  and tick value. The top-bar button shows the live count (`Copy ×4`) so you always know how many
+  accounts an order will hit; untick `copy` to exclude an account (also how you stagger starts).
+  With it off, only the active account trades.
+* **Collapse** any account with the `▾` chevron — collapsed cards shrink to one line showing name,
+  balance and status. `⌃⌄` collapses or expands everything.
+* **Sort** the manager by manual order, *failed first*, active first, balance, P/L, or name. Any
+  non-manual sort re-orders live as accounts pass or fail. `↑` `↓` on a card reorder manually.
 * Per-account sizing: **risk $** (contracts derived from the stop distance) or **fixed** contracts.
 * Each card shows live balance, room to floor, distance to target, a progress bar, an **equity
   sparkline drawn between the floor and the target lines**, and trade/day/consistency counters.
@@ -78,6 +84,12 @@ Orders are stored in a per-account **journal** keyed to the bar you placed them 
 state is *derived* by replaying that journal. So changing a rule mid-session, dragging the
 scrubber, or reloading a saved session re-simulates rather than losing trades. Stepping back
 (`←`) deliberately discards orders placed at or after that bar — that is the undo.
+
+## Presets
+Set up a rule set in the **Rules** tab, type a name and hit **★ save** — it is stored in this
+browser (IndexedDB) and immediately appears in the account creator's preset list and the preset
+dropdown, marked with a ★. `×` deletes a saved preset (built-ins can't be deleted or overwritten).
+Saved presets survive reloads and also travel inside an exported session file.
 
 ## Files in / out
 * Rule preset → `.json` (download, and drag-drop back on).
@@ -103,7 +115,8 @@ result.** Every field is editable.
 Everything runs off a single `requestAnimationFrame` loop with dirty flags — interactions set a
 flag rather than forcing a synchronous redraw. Zoom is **anchored to the bar under the cursor**,
 the price axis and time axis each drag to scale, and double-click resets. Only visible candles are
-drawn.
+drawn. The chart keeps a **14% blank margin on the right** (`view.offPct`) so the latest price
+never sits jammed against the axis and there is room to draw ahead of it.
 
 ## Verification
 Tested in Chromium against the real NAS100 export (49,619-bar slice): data load and sort, exact

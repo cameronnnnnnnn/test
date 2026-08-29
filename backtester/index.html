@@ -79,6 +79,14 @@ tr.clk:hover td{background:var(--panel2)}
 .acard.act:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
 .acard.dead{opacity:.5}
 .acard .hd{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.mini-b{background:var(--panel3);border:1px solid var(--line2);border-radius:4px;padding:2px 5px;font-size:10px;line-height:1;cursor:pointer;flex:none}
+.mini-b:hover{background:#33405c}
+.acard .ctl>*{flex:none}
+.chev{color:var(--dim);cursor:pointer;font-size:11px;width:11px;flex:none}
+.chev:hover{color:var(--txt)}
+.hbal{margin-left:auto;font-size:11.5px}
+.acard .hd .badge{margin-left:auto}
+.acard .hd .hbal+.badge{margin-left:6px}
 .acard .nm{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
 .kv{display:flex;justify-content:space-between;font-size:11px;line-height:1.7}
@@ -300,11 +308,11 @@ const PRESETS={
 const PTV={mini:20,micro:2};
 const S={
   d:null,ny:null,ready:false,tz:"ny",
-  view:{i1:0,n:400,pMin:0,pMax:0,autoP:true},
+  view:{i1:0,n:400,pMin:0,pMax:0,autoP:true,offPct:.14},   // offPct = blank space kept on the right
   rep:{cur:0,playing:false,speed:5,free:false},
   set:{spread:1.5,slip:0,autoFlat:true,flatMin:1019,autoBeR:0,beOff:0},
   ticket:{sl:40,tp:120,tpMode:"pts"},
-  accounts:[],active:0,mirror:false,
+  accounts:[],active:0,mirror:true,sortMode:"custom",userPresets:{},
   draws:[],undo:[],redo:[],sel:null,tool:"cursor",
   mouse:{x:0,y:0,in:false,idx:-1,price:0},
   tab:"acct",hideDead:false
@@ -596,19 +604,24 @@ function resize(){
   markDraw();
 }
 const plotW=()=>W-PADR,plotH=()=>H-PADB;
+/* i0 is the (possibly fractional) leftmost slot; i1 is one past the last DATA bar; the last
+   `offPct` of the width is deliberately left blank so price never sits against the axis. */
 function viewRange(){
   const hi=Math.min(maxIdx(),S.d.n-1);
   const i1=Math.min(S.view.i1,hi+1);
-  return [Math.max(0,i1-S.view.n),i1];
+  const off=Math.round(S.view.n*S.view.offPct);
+  return [i1+off-S.view.n,i1,off];
 }
-function x2i(x){const[i0,i1]=viewRange();return i0+Math.floor(x/(plotW()/(i1-i0)));}
-function i2x(i){const[i0,i1]=viewRange();const bw=plotW()/(i1-i0);return (i-i0)*bw+bw/2;}
+const barW=()=>plotW()/S.view.n;
+function x2i(x){return Math.round(viewRange()[0]+x/barW()-.5);}
+function i2x(i){return (i-viewRange()[0])*barW()+barW()/2;}
+function firstVis(){return Math.max(0,Math.ceil(viewRange()[0]));}
 const p2y=p=>plotH()-((p-S.view.pMin)/(S.view.pMax-S.view.pMin))*plotH();
 const y2p=y=>S.view.pMin+(plotH()-y)/plotH()*(S.view.pMax-S.view.pMin);
 function autoScale(){
   if(!S.view.autoP)return;
-  const[i0,i1]=viewRange();let mn=Infinity,mx=-Infinity;
-  for(let i=i0;i<i1;i++){if(S.d.l[i]<mn)mn=S.d.l[i];if(S.d.h[i]>mx)mx=S.d.h[i];}
+  const i1=viewRange()[1];let mn=Infinity,mx=-Infinity;
+  for(let i=firstVis();i<i1;i++){if(S.d.l[i]<mn)mn=S.d.l[i];if(S.d.h[i]>mx)mx=S.d.h[i];}
   if(!isFinite(mn)){mn=0;mx=1;}
   const pad=(mx-mn)*.09||1;
   S.view.pMin=mn-pad;S.view.pMax=mx+pad;
@@ -622,7 +635,7 @@ function draw(){
   ctx.fillStyle="#0f1320";ctx.fillRect(0,0,W,H);
   if(!S.ready)return;
   autoScale();
-  const[i0,i1]=viewRange(),bw=plotW()/(i1-i0);
+  const i0=firstVis(),i1=viewRange()[1],bw=barW();
   drawGrid();
   drawSessions(i0,i1,bw);
   drawCandles(i0,i1,bw);
@@ -789,7 +802,7 @@ function drawTrades(i0,i1){
       ctx.beginPath();ctx.moveTo(x1,ye);ctx.lineTo(xr,ye);ctx.stroke();
       if(t.stop){
         const y=p2y(t.stop);
-        ctx.fillStyle="rgba(239,68,68,.10)";ctx.fillRect(x1,Math.min(ye,y),xr-x1,Math.abs(y-ye));
+        ctx.fillStyle="rgba(239,68,68,.055)";ctx.fillRect(x1,Math.min(ye,y),xr-x1,Math.abs(y-ye));
         ctx.strokeStyle=t.be?"#f59e0b":"#ef4444";ctx.setLineDash([5,3]);
         ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(xr,y);ctx.stroke();ctx.setLineDash([]);
         if(isAct){ctx.fillStyle=t.be?"#f59e0b":"#ef4444";ctx.font="10px ui-sans-serif";
@@ -797,7 +810,7 @@ function drawTrades(i0,i1){
       }
       if(t.tp){
         const y=p2y(t.tp);
-        ctx.fillStyle="rgba(34,197,94,.10)";ctx.fillRect(x1,Math.min(ye,y),xr-x1,Math.abs(y-ye));
+        ctx.fillStyle="rgba(34,197,94,.055)";ctx.fillRect(x1,Math.min(ye,y),xr-x1,Math.abs(y-ye));
         ctx.strokeStyle="#22c55e";ctx.setLineDash([5,3]);
         ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(xr,y);ctx.stroke();ctx.setLineDash([]);
         if(isAct){ctx.fillStyle="#22c55e";ctx.font="10px ui-sans-serif";ctx.fillText("TP "+t.tp.toFixed(1),xr-72,y-4);}
@@ -909,9 +922,21 @@ function distSeg(px,py,x1,y1,x2,y2){
 }
 
 /* ===================== orders ===================== */
+/* COPY TRADE: with it on (default), one order enters on every account whose "copy" box is
+   ticked and that is still ACTIVE — each sized by its own rules. Off = active account only. */
 function targets(){
   const a=acct();
-  return S.mirror?S.accounts.filter(x=>x.enabled&&x.st.status==="ACTIVE"):(a&&a.st.status==="ACTIVE"?[a]:[]);
+  if(!S.mirror)return a&&a.st.status==="ACTIVE"?[a]:[];
+  const t=S.accounts.filter(x=>x.enabled&&x.st.status==="ACTIVE");
+  if(a&&a.st.status==="ACTIVE"&&!t.includes(a))t.push(a);   // active acct always trades
+  return t;
+}
+function syncMirrorBtn(){
+  const b=el("btnMirror");if(!b)return;
+  const n=targets().length;
+  b.classList.toggle("on",S.mirror);
+  b.textContent=S.mirror?"Copy ×"+n:"Copy off";
+  b.title=S.mirror?"One order enters on all "+n+" ticked, active accounts":"Only the active account trades";
 }
 function placeOrder(dir,o){
   const tg=targets();
@@ -980,8 +1005,7 @@ function initChart(){
     if(S.ready&&S.mouse.in){S.mouse.idx=Math.max(0,Math.min(maxIdx(),x2i(x)));S.mouse.price=y2p(y);}
     if(!drag){if(S.mouse.in)markDraw();return;}
     if(drag.mode==="pan"){
-      const[i0,i1]=viewRange(),bw=plotW()/(i1-i0);
-      S.view.i1=Math.max(20,Math.min(maxIdx()+1,drag.i1+Math.round((drag.x-x)/bw)));
+      S.view.i1=Math.max(20,Math.min(maxIdx()+1,drag.i1+Math.round((drag.x-x)/barW())));
       if(!S.view.autoP){
         const dp=(y-drag.y)/plotH()*(drag.pMax-drag.pMin);
         S.view.pMin=drag.pMin+dp;S.view.pMax=drag.pMax+dp;
@@ -1019,13 +1043,11 @@ function initChart(){
   cv.addEventListener("wheel",e=>{
     e.preventDefault();if(!S.ready)return;
     const r=cv.getBoundingClientRect(),x=e.clientX-r.left;
-    const[i0,i1]=viewRange();
-    const anchor=i0+(x/plotW())*(i1-i0);
+    const anchor=viewRange()[0]+x/barW();          // data slot under the cursor
     const f=e.deltaY>0?1.14:1/1.14;
-    const n2=Math.max(20,Math.min(20000,Math.round(S.view.n*f)));
-    const frac=(anchor-i0)/(i1-i0);
-    S.view.n=n2;
-    S.view.i1=Math.max(20,Math.min(maxIdx()+1,Math.round(anchor+(1-frac)*n2)));
+    S.view.n=Math.max(20,Math.min(20000,Math.round(S.view.n*f)));
+    const bw2=barW(),off2=Math.round(S.view.n*S.view.offPct);
+    S.view.i1=Math.max(20,Math.min(maxIdx()+1,Math.round(anchor-x/bw2+S.view.n-off2)));
     markDraw();
   },{passive:false});
   cv.addEventListener("dblclick",()=>{S.view.autoP=true;S.view.n=400;S.view.i1=S.rep.cur+1;markDraw();});
@@ -1131,6 +1153,7 @@ function syncAcctSel(){
     s.appendChild(o);
   });
   s.value=S.active;
+  syncMirrorBtn();
 }
 let cardRefs={};
 function renderPanel(){
@@ -1141,68 +1164,124 @@ function renderPanel(){
   else{p.innerHTML=panelStats();setTimeout(drawStatsCharts,0);}
 }
 /* Accounts panel is built once and then PATCHED each bar — no innerHTML churn during playback */
+const RANK={FAILED:0,ACTIVE:1,PASSED:2};
+function orderIdx(){
+  const idx=S.accounts.map((a,i)=>i);
+  const m=S.sortMode;
+  if(m==="custom")return idx;
+  const A=S.accounts;
+  const cmp={
+    failed:(x,y)=>RANK[A[x].st.status]-RANK[A[y].st.status],
+    active:(x,y)=>(A[y].st.status==="ACTIVE")-(A[x].st.status==="ACTIVE"),
+    balance:(x,y)=>A[y].st.bal-A[x].st.bal,
+    pl:(x,y)=>(A[y].st.bal-A[y].rules.start)-(A[x].st.bal-A[x].rules.start),
+    name:(x,y)=>A[x].name.localeCompare(A[y].name)
+  }[m];
+  return cmp?idx.sort(cmp):idx;
+}
+function allPresets(){return Object.assign({},PRESETS,S.userPresets);}
 function buildAccounts(p){
   p.innerHTML="";
   const bar=document.createElement("div");
   bar.className="row";
   bar.innerHTML='<button id="addAcct" class="sm">+ Add</button>'+
-    '<select id="addPreset" style="flex:1">'+Object.keys(PRESETS).map(k=>'<option>'+k+'</option>').join("")+'</select>'+
-    '<input type="number" id="addN" value="1" min="1" max="30" style="width:48px" title="how many">'+
-    '<button id="cloneAcct" class="sm" title="Clone active">⧉</button>'+
-    '<button id="hideDead" class="sm '+(S.hideDead?"on":"")+'" title="Hide failed/passed">◐</button>';
+    '<select id="addPreset" style="flex:1">'+Object.keys(allPresets()).map(k=>'<option>'+k+'</option>').join("")+'</select>'+
+    '<input type="number" id="addN" value="1" min="1" max="30" style="width:44px" title="how many">'+
+    '<button id="cloneAcct" class="sm" title="Clone active">⧉</button>';
   p.appendChild(bar);
+  const bar2=document.createElement("div");
+  bar2.className="row";
+  bar2.innerHTML='<label style="min-width:0">sort</label><select id="sortSel" style="flex:1">'+
+    [["custom","manual order"],["failed","failed first"],["active","active first"],
+     ["balance","balance ↓"],["pl","P/L ↓"],["name","name"]]
+      .map(([v,l])=>'<option value="'+v+'"'+(S.sortMode===v?" selected":"")+'>'+l+'</option>').join("")+'</select>'+
+    '<button id="hideDead" class="sm'+(S.hideDead?" on":"")+'" title="Hide finished accounts">◐</button>'+
+    '<button id="collapseAll" class="sm" title="Collapse / expand all">⌃⌄</button>';
+  p.appendChild(bar2);
   const sum=document.createElement("div");sum.id="summary";p.appendChild(sum);
   const wrap=document.createElement("div");wrap.id="acards";p.appendChild(wrap);
-  S.accounts.forEach((a,idx)=>wrap.appendChild(makeCard(a,idx)));
+  orderIdx().forEach(i=>wrap.appendChild(makeCard(S.accounts[i],i)));
   const note=document.createElement("div");
   note.className="note";
-  note.textContent="Every account is simulated on every bar independently. Mirror sends each order to all enabled, active accounts, sized by each account's own rules.";
+  note.innerHTML="Every account is simulated on every bar, independently. With <b>Copy</b> on, one order enters on every ticked, active account at its own size.";
   p.appendChild(note);
   el("addAcct").onclick=()=>{
-    const pr=el("addPreset").value,n=Math.max(1,Math.min(30,+el("addN").value||1));
-    for(let k=0;k<n;k++)S.accounts.push(newAccount(pr+" #"+(S.accounts.length+1),pr));
+    const pr=el("addPreset").value,n=Math.max(1,Math.min(30,+el("addN").value||1)),P=allPresets();
+    for(let k=0;k<n;k++){
+      const a=newAccount(pr+" #"+(S.accounts.length+1),null);
+      a.preset=pr;a.rules=JSON.parse(JSON.stringify(P[pr]));a.st=blankState(a.rules);
+      S.accounts.push(a);
+    }
     replayTo(S.rep.cur);syncAcctSel();renderPanel();
   };
   el("cloneAcct").onclick=()=>{
     const a=acct();if(!a)return;
-    const c=newAccount(a.name+" copy","Apex 50K");
+    const c=newAccount(a.name+" copy",null);
     c.rules=JSON.parse(JSON.stringify(a.rules));c.riskUsd=a.riskUsd;c.preset=a.preset;
-    c.sizeMode=a.sizeMode;c.fixedSize=a.fixedSize;
+    c.sizeMode=a.sizeMode;c.fixedSize=a.fixedSize;c.st=blankState(c.rules);
     S.accounts.push(c);replayTo(S.rep.cur);syncAcctSel();renderPanel();
   };
+  el("sortSel").onchange=e=>{S.sortMode=e.target.value;renderPanel();};
   el("hideDead").onclick=()=>{S.hideDead=!S.hideDead;renderPanel();};
+  el("collapseAll").onclick=()=>{
+    const any=S.accounts.some(a=>!a.collapsed);
+    S.accounts.forEach(a=>a.collapsed=any);renderPanel();
+  };
   patchAccounts();
 }
 function makeCard(a,idx){
   const c=document.createElement("div");
   c.className="acard";c.dataset.idx=idx;
   c.innerHTML=
-    '<div class="hd"><span class="dot" style="background:'+a.color+'"></span>'+
+    '<div class="hd">'+
+      '<span class="chev" data-chev title="collapse">'+(a.collapsed?"▸":"▾")+'</span>'+
+      '<span class="dot" style="background:'+a.color+'"></span>'+
       '<span class="nm">'+a.name+'</span>'+
-      '<span class="badge" data-st style="margin-left:auto"></span></div>'+
-    '<div class="kv"><span class="dimtxt">balance</span><b class="mono" data-bal></b></div>'+
-    '<div class="kv"><span class="dimtxt">room to floor</span><span class="mono" data-room></span></div>'+
-    '<div class="kv"><span class="dimtxt">to target</span><span class="mono" data-tgt></span></div>'+
-    '<div class="bar"><i data-prog></i></div>'+
-    '<canvas class="spark" data-spark></canvas>'+
-    '<div class="mini"><span data-mini></span></div>'+
-    '<div class="row" style="margin:6px 0 0">'+
-      '<input type="number" data-risk value="'+a.riskUsd+'" style="width:66px" title="risk $ per trade">'+
-      '<select data-smode style="width:74px"><option value="risk"'+(a.sizeMode==="risk"?" selected":"")+'>risk $</option>'+
-        '<option value="fixed"'+(a.sizeMode==="fixed"?" selected":"")+'>fixed</option></select>'+
-      '<input type="number" data-fixed value="'+a.fixedSize+'" style="width:46px" title="contracts">'+
-      '<label style="min-width:0;font-size:10.5px"><input type="checkbox" data-en'+(a.enabled?" checked":"")+'> on</label>'+
-      '<button class="sm" data-del title="remove">×</button>'+
-    '</div>'+
-    '<div class="note" data-breach style="display:none"></div>';
+      '<b class="mono hbal" data-hbal></b>'+
+      '<span class="badge" data-st></span></div>'+
+    '<div data-body>'+
+      '<div class="kv"><span class="dimtxt">balance</span><b class="mono" data-bal></b></div>'+
+      '<div class="kv"><span class="dimtxt">room to floor</span><span class="mono" data-room></span></div>'+
+      '<div class="kv"><span class="dimtxt">to target</span><span class="mono" data-tgt></span></div>'+
+      '<div class="bar"><i data-prog></i></div>'+
+      '<canvas class="spark" data-spark></canvas>'+
+      '<div class="mini"><span data-mini></span></div>'+
+      '<div class="row ctl" style="margin:6px 0 0;flex-wrap:nowrap">'+
+        '<input type="number" data-risk value="'+a.riskUsd+'" style="width:54px" title="risk $ per trade">'+
+        '<select data-smode style="width:62px"><option value="risk"'+(a.sizeMode==="risk"?" selected":"")+'>risk $</option>'+
+          '<option value="fixed"'+(a.sizeMode==="fixed"?" selected":"")+'>fixed</option></select>'+
+        '<input type="number" data-fixed value="'+a.fixedSize+'" style="width:36px" title="contracts">'+
+        '<label style="min-width:0;font-size:10.5px;white-space:nowrap" title="receive copied orders">'+
+          '<input type="checkbox" data-en'+(a.enabled?" checked":"")+'> copy</label>'+
+        '<span style="flex:1"></span>'+
+        '<button class="mini-b" data-up title="move up">↑</button>'+
+        '<button class="mini-b" data-down title="move down">↓</button>'+
+        '<button class="mini-b" data-del title="remove">×</button>'+
+      '</div>'+
+      '<div class="note" data-breach style="display:none"></div>'+
+    '</div>';
   c.onclick=ev=>{
     if(["INPUT","BUTTON","SELECT","LABEL"].includes(ev.target.tagName))return;
+    if(ev.target.dataset.chev!==undefined){
+      const A=S.accounts[+c.dataset.idx];A.collapsed=!A.collapsed;markPanel();return;
+    }
     S.active=+c.dataset.idx;syncAcctSel();markPanel();
   };
+  const move=d=>{
+    const i=+c.dataset.idx,j=i+d;
+    if(j<0||j>=S.accounts.length)return;
+    const act=S.accounts[S.active];
+    const t=S.accounts[i];S.accounts[i]=S.accounts[j];S.accounts[j]=t;
+    S.active=S.accounts.indexOf(act);
+    S.sortMode="custom";syncAcctSel();renderPanel();
+  };
+  c.querySelector("[data-up]").onclick=()=>move(-1);
+  c.querySelector("[data-down]").onclick=()=>move(1);
   c.querySelector("[data-risk]").onchange=e=>{S.accounts[+c.dataset.idx].riskUsd=+e.target.value;markDraw();};
   c.querySelector("[data-fixed]").onchange=e=>{S.accounts[+c.dataset.idx].fixedSize=Math.max(1,+e.target.value);markDraw();};
   c.querySelector("[data-smode]").onchange=e=>{S.accounts[+c.dataset.idx].sizeMode=e.target.value;markDraw();};
-  c.querySelector("[data-en]").onchange=e=>{S.accounts[+c.dataset.idx].enabled=e.target.checked;markDraw();};
+  c.querySelector("[data-en]").onchange=e=>{
+    S.accounts[+c.dataset.idx].enabled=e.target.checked;syncMirrorBtn();markDraw();};
   c.querySelector("[data-del]").onclick=()=>{
     if(S.accounts.length<2)return toast("keep at least one account");
     S.accounts.splice(+c.dataset.idx,1);S.active=0;syncAcctSel();renderPanel();
@@ -1211,7 +1290,9 @@ function makeCard(a,idx){
     st:c.querySelector("[data-st]"),bal:c.querySelector("[data-bal]"),
     room:c.querySelector("[data-room]"),tgt:c.querySelector("[data-tgt]"),
     prog:c.querySelector("[data-prog]"),mini:c.querySelector("[data-mini]"),
-    spark:c.querySelector("[data-spark]"),breach:c.querySelector("[data-breach]")};
+    spark:c.querySelector("[data-spark]"),breach:c.querySelector("[data-breach]"),
+    body:c.querySelector("[data-body]"),chev:c.querySelector("[data-chev]"),
+    hbal:c.querySelector("[data-hbal]")};
   return c;
 }
 function patchAccounts(){
@@ -1231,6 +1312,12 @@ function patchAccounts(){
     R.root.style.display=(S.hideDead&&a.st.status!=="ACTIVE")?"none":"";
     const col=a.st.status==="PASSED"?"var(--good)":a.st.status==="FAILED"?"var(--bad)":"var(--warn)";
     R.st.textContent=a.st.status;R.st.style.background=col;R.st.style.color="#fff";
+    R.body.style.display=a.collapsed?"none":"";
+    R.chev.textContent=a.collapsed?"▸":"▾";
+    R.hbal.style.display=a.collapsed?"":"none";
+    R.hbal.textContent=fmt$(a.st.bal);
+    R.hbal.className="mono hbal "+clsN(a.st.bal-a.rules.start);
+    if(a.collapsed)return;
     R.bal.textContent=fmt$2(a.st.bal);
     R.bal.className="mono "+clsN(a.st.bal-a.rules.start);
     R.room.textContent=fmt$(eq-fl);
@@ -1246,6 +1333,16 @@ function patchAccounts(){
     else R.breach.style.display="none";
     sparkline(R.spark,a);
   });
+  /* keep the chosen sort live as accounts pass/fail, without rebuilding the DOM */
+  if(S.sortMode!=="custom"){
+    const sig=S.accounts.map(a=>a.st.status).join("|");
+    if(sig!==patchAccounts._sig){
+      patchAccounts._sig=sig;
+      const wrap=el("acards");
+      if(wrap)orderIdx().forEach(i=>{const R=cardRefs[S.accounts[i].id];if(R)wrap.appendChild(R.root);});
+    }
+  }
+  syncMirrorBtn();
   const s=el("summary");
   if(s)s.innerHTML=
     '<div class="sumrow"><span class="dimtxt">accounts</span><span class="mono">'+S.accounts.length+
@@ -1277,8 +1374,13 @@ function panelRules(){
   return '<div class="warnbox">Preset values are defaults from public rule sheets — <b>verify your firm\'s current terms</b>.</div>'+
     '<div class="row"><label>Name</label><input type="text" data-nm value="'+a.name+'" style="flex:1"></div>'+
     '<div class="row"><label>Preset</label><select data-preset style="flex:1">'+
-      Object.keys(PRESETS).map(k=>'<option'+(k===a.preset?" selected":"")+'>'+k+'</option>').join("")+
+      Object.keys(allPresets()).map(k=>'<option'+(k===a.preset?" selected":"")+'>'+k+
+        (S.userPresets[k]?" ★":"")+'</option>').join("")+
       '</select><button class="sm" id="applyPreset">apply</button></div>'+
+    '<div class="row"><input type="text" id="presetName" placeholder="save these rules as…" style="flex:1">'+
+      '<button class="sm" id="savePreset">★ save</button>'+
+      '<button class="sm danger" id="delPreset" title="delete saved preset">×</button></div>'+
+    '<div class="note">★ presets are stored in this browser and appear in the account creator.</div>'+
     '<h3>Account</h3>'+f("Start balance","start")+f("Profit target $","target")+f("Max loss $","maxLoss")+
     '<div class="row"><label>Drawdown mode</label><select data-rule="ddMode" style="flex:1">'+
       ['static','eod','intraday'].map(m=>'<option value="'+m+'"'+(r.ddMode===m?" selected":"")+'>'+
@@ -1320,9 +1422,24 @@ function wireRules(){
   const nm=p.querySelector("[data-nm]");
   if(nm)nm.onchange=()=>{acct().name=nm.value;syncAcctSel();};
   el("applyPreset").onclick=()=>{
-    const k=p.querySelector("[data-preset]").value;
-    acct().preset=k;acct().rules=JSON.parse(JSON.stringify(PRESETS[k]));
+    const k=p.querySelector("[data-preset]").value.replace(/ ★$/,"");
+    const P=allPresets();if(!P[k])return;
+    acct().preset=k;acct().rules=JSON.parse(JSON.stringify(P[k]));
     replayTo(S.rep.cur);renderPanel();
+  };
+  el("savePreset").onclick=()=>{
+    const nm=(el("presetName").value||"").trim();
+    if(!nm)return toast("give the preset a name");
+    if(PRESETS[nm])return toast("that name is a built-in preset");
+    S.userPresets[nm]=JSON.parse(JSON.stringify(acct().rules));
+    acct().preset=nm;idbSet("userPresets",S.userPresets);
+    toast('saved preset "'+nm+'"');renderPanel();
+  };
+  el("delPreset").onclick=()=>{
+    const k=p.querySelector("[data-preset]").value.replace(/ ★$/,"");
+    if(!S.userPresets[k])return toast("only saved ★ presets can be deleted");
+    delete S.userPresets[k];idbSet("userPresets",S.userPresets);
+    toast('deleted "'+k+'"');renderPanel();
   };
   el("reRun").onclick=()=>{replayTo(S.rep.cur);renderPanel();};
   el("dlPreset").onclick=()=>dl(acct().name+".preset.json",JSON.stringify({preset:acct().rules},null,2));
@@ -1465,22 +1582,25 @@ function exportCSV(){
   const a=document.createElement("a");a.href=u;a.download="trades.csv";a.click();
 }
 function sessionOut(){
-  return {v:2,cursor:S.rep.cur,tz:S.tz,set:S.set,ticket:S.ticket,draws:S.draws,active:S.active,mirror:S.mirror,
+  return {v:3,cursor:S.rep.cur,tz:S.tz,set:S.set,ticket:S.ticket,draws:S.draws,active:S.active,mirror:S.mirror,
+    sortMode:S.sortMode,userPresets:S.userPresets,
     accounts:S.accounts.map(a=>({name:a.name,color:a.color,preset:a.preset,rules:a.rules,riskUsd:a.riskUsd,
-      sizeMode:a.sizeMode,fixedSize:a.fixedSize,enabled:a.enabled,id:a.id,journal:a.journal}))};
+      sizeMode:a.sizeMode,fixedSize:a.fixedSize,enabled:a.enabled,collapsed:!!a.collapsed,id:a.id,journal:a.journal}))};
 }
 function sessionIn(o){
   if(o.accounts)S.accounts=o.accounts.map(x=>{
     const a=newAccount(x.name,x.preset);
     Object.assign(a,{name:x.name,color:x.color,rules:x.rules,riskUsd:x.riskUsd,
       sizeMode:x.sizeMode||"risk",fixedSize:x.fixedSize||2,enabled:x.enabled!==false,
-      id:x.id||a.id,journal:x.journal||[],_jmap:null});
+      collapsed:!!x.collapsed,id:x.id||a.id,journal:x.journal||[],_jmap:null});
     return a;
   });
   if(o.set)Object.assign(S.set,o.set);
   if(o.ticket)Object.assign(S.ticket,o.ticket);
   if(o.draws)S.draws=o.draws;
-  S.mirror=!!o.mirror;
+  if(o.userPresets){Object.assign(S.userPresets,o.userPresets);idbSet("userPresets",S.userPresets);}
+  if(o.sortMode)S.sortMode=o.sortMode;
+  S.mirror=o.mirror!==false;
   S.active=Math.min(o.active||0,S.accounts.length-1);
   if(S.ready)replayTo(o.cursor||S.rep.cur);
   syncAcctSel();syncTicket();renderPanel();toast("session loaded");
@@ -1550,9 +1670,8 @@ function initUI(){
   };
   el("acctsel").onchange=e=>{S.active=+e.target.value;markPanel();};
   el("btnMirror").onclick=()=>{
-    S.mirror=!S.mirror;
-    el("btnMirror").classList.toggle("on",S.mirror);
-    toast("mirror "+(S.mirror?"ON — orders go to all enabled accounts":"off"));
+    S.mirror=!S.mirror;syncMirrorBtn();
+    toast(S.mirror?"Copy trade ON — orders enter on all ticked accounts":"Copy trade off — active account only");
   };
   el("btnBuy").onclick=()=>marketOrder(1);
   el("btnSell").onclick=()=>marketOrder(-1);
@@ -1634,6 +1753,8 @@ function frame(){
 (async function(){
   initChart();initUI();syncTicket();resize();
   const dr=await idbGet("draws");if(dr)S.draws=dr;
+  const up=await idbGet("userPresets");if(up)S.userPresets=up;
+  syncMirrorBtn();
   if(!await tryCache())el("overlaymsg").classList.remove("hide");
   requestAnimationFrame(frame);
 })();
